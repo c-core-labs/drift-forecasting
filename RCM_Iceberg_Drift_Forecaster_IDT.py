@@ -472,14 +472,10 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                     ncfile.createDimension('y_gradient_latitude', len(curr_ssh_lat[:, 0]) - 1)
                     ncfile.createDimension('y_gradient_longitude', len(curr_ssh_lon[0, :]))
 
-                    x_gradient_latitude_var = ncfile.createVariable('ssh_grad_x_lat', 'f8',
-                                                                    ('x_gradient_latitude', 'x_gradient_longitude',))
-                    x_gradient_longitude_var = ncfile.createVariable('ssh_grad_x_lon', 'f8',
-                                                                     ('x_gradient_latitude', 'x_gradient_longitude',))
-                    y_gradient_latitude_var = ncfile.createVariable('ssh_grad_y_lat', 'f8',
-                                                                    ('y_gradient_latitude', 'y_gradient_longitude',))
-                    y_gradient_longitude_var = ncfile.createVariable('ssh_grad_y_lon', 'f8',
-                                                                     ('y_gradient_latitude', 'y_gradient_longitude',))
+                    x_gradient_latitude_var = ncfile.createVariable('ssh_grad_x_lat', 'f8', ('x_gradient_latitude', 'x_gradient_longitude',))
+                    x_gradient_longitude_var = ncfile.createVariable('ssh_grad_x_lon', 'f8',('x_gradient_latitude', 'x_gradient_longitude',))
+                    y_gradient_latitude_var = ncfile.createVariable('ssh_grad_y_lat', 'f8', ('y_gradient_latitude', 'y_gradient_longitude',))
+                    y_gradient_longitude_var = ncfile.createVariable('ssh_grad_y_lon', 'f8',('y_gradient_latitude', 'y_gradient_longitude',))
                     ssh_grad_x_var = ncfile.createVariable('ssh_grad_x', 'f4', ('x_gradient_latitude', 'x_gradient_longitude',))
                     ssh_grad_y_var = ncfile.createVariable('ssh_grad_y', 'f4', ('y_gradient_latitude', 'y_gradient_longitude',))
 
