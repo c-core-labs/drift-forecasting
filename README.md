@@ -22,10 +22,10 @@ How the Function Works:
 
 The rcm_iceberg_drift_forecaster function requires the following inputs:
 
-•	An iceberg latitude/longitude position (iceberg_lat0, iceberg_lon0),
+•	An iceberg latitude/longitude position (iceberg_lat0, iceberg_lon0 in degrees North and East, respectively),
 •	The date/time of the RCM image acquisition (rcm_datetime0),
 •	The iceberg waterline length (iceberg_length),
-•	Its status as grounded or not (grounded_status), and
+•	Its status as grounded or not (grounded_status: this should be entered as “grounded” or “not grounded”), and
 •	The anticipated time of the next RCM image acquisition (next_rcm_time).
 
 The path to the directory containing the wgrib2.exe tool and associated files for converting grib2 files to netCDF format (wgrib_path) and the path to the bathymetric data file in netCDF format (bathy_data_path) are currently hard coded into the function in the top few lines. These can be changed as needed. The iceberg waterline length is assumed to be in meters. The date/time of the RCM image acquisition (rcm_datetime0) and the anticipated date/time of the next RCM image acquisition (next_rcm_time) should be input as strings in numpy datetime64 format and Universal Time Coordinated (UTC), e.g., for example: ‘2024-11-01T09:42:53.33’.
