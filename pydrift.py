@@ -6,6 +6,7 @@ import grounded
 import leeway
 import highResML
 import lowResML
+import dynamic
 
 # Implementation of Strategy pattern
 class Context():
@@ -58,7 +59,7 @@ class LowResML(Strategy):
 # The grounded model
 class Grounded(Strategy):
     def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
-        return grounded.forecast(obs,t1)
+        return dynamic.forecast(obs,t1)
 
     def metadata(self):
         return "Iceberg does not move"
@@ -71,6 +72,14 @@ class Leeway(Strategy):
 
     def metadata(self):
         return "Leeway drift model"
+
+# The dynamic model
+class Dynamic(Strategy):
+    def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
+        return leeway.forecast(obs,t1)
+
+    def metadata(self):
+        return "Dynamic drift model"
 
 
 if __name__ == "__main__":

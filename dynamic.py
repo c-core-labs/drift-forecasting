@@ -1,4 +1,3 @@
-
 from scipy.interpolate import RegularGridInterpolator, griddata, interp1d
 from scipy.integrate import solve_ivp
 from tempfile import TemporaryDirectory
@@ -11,9 +10,17 @@ import shutil
 import os
 import time
 import warnings
+from observation import Observation
+
 warnings.simplefilter(action='ignore')
 
-def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceberg_length, grounded_status, next_rcm_time):
+def forecast(observation: Observation, next_rcm_time):
+    rcm_datetime0 = observation.time
+    iceberg_lat0 = observation.lat
+    iceberg_lon0 = observation.lon
+    iceberg_length = observation.length
+    grounded_status = observation.grounded
+
     use_temporary_directory = True
     wgrib_path = './wgrib/'
     bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
