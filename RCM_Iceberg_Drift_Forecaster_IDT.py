@@ -119,6 +119,30 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
     dirname_curr_ssh = str(np.datetime64('today'))
     d_curr_ssh = dirname_curr_ssh.replace('-', '')
 
+    iceberg_times = [forecast_time]
+
+    # Add hourly intervals until close to the end time
+    current_time = forecast_time
+
+    while current_time + np.timedelta64(1, 'h') < next_rcm_time:
+        current_time += np.timedelta64(1, 'h')
+        iceberg_times.append(current_time)
+
+    # Append the exact end time for the remainder interval
+    if iceberg_times[-1] < next_rcm_time:
+        iceberg_times.append(next_rcm_time)
+
+    # Convert to list for easier inspection, if desired
+    iceberg_times = list(iceberg_times)
+    iceberg_times_dt = [float((iceberg_times[i + 1] - iceberg_times[i]) / np.timedelta64(1, 's')) for i in
+                        range(len(iceberg_times) - 1)]
+
+    # Convert to list for easier inspection if desired
+    iceberg_times_dt = list(iceberg_times_dt)
+
+    iceberg_lats = np.empty((len(iceberg_times),))
+    iceberg_lons = np.empty((len(iceberg_times),))
+
     if grounded_status == 'not grounded':
         url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/12/240/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + '12_P240.grib2'
         response = requests.head(url)
@@ -502,28 +526,6 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                     depth_var[:] = depth_curr
                     v_curr_var[:] = v_curr
 
-            iceberg_times = [forecast_time]
-
-            # Add hourly intervals until close to the end time
-            current_time = forecast_time
-
-            while current_time + np.timedelta64(1, 'h') < next_rcm_time:
-                current_time += np.timedelta64(1, 'h')
-                iceberg_times.append(current_time)
-
-            # Append the exact end time for the remainder interval
-            if iceberg_times[-1] < next_rcm_time:
-                iceberg_times.append(next_rcm_time)
-
-            # Convert to list for easier inspection, if desired
-            iceberg_times = list(iceberg_times)
-            iceberg_times_dt = [float((iceberg_times[i + 1] - iceberg_times[i]) / np.timedelta64(1, 's')) for i in range(len(iceberg_times) - 1)]
-
-            # Convert to list for easier inspection if desired
-            iceberg_times_dt = list(iceberg_times_dt)
-
-            iceberg_lats = np.empty((len(iceberg_times),))
-            iceberg_lons = np.empty((len(iceberg_times),))
             iceberg_us = np.empty((len(iceberg_times),))
             iceberg_vs = np.empty((len(iceberg_times),))
 
@@ -995,16 +997,16 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                     iceberg_us[i + 1] = 0.
                     iceberg_vs[i + 1] = 0.
 
-        iceberg_lat_final = iceberg_lats[-1]
-        iceberg_lon_final = iceberg_lons[-1]
+            iceberg_lat_final = iceberg_lats[-1]
+            iceberg_lon_final = iceberg_lons[-1]
+            iceberg_total_displacement, iceberg_overall_course = dist_bearing(Re, iceberg_lat0, iceberg_lat_final, iceberg_lon0, iceberg_lon_final)
 
     elif grounded_status == 'grounded':
-        iceberg_lat_final = iceberg_lat0
-        iceberg_lon_final = iceberg_lon0
+        iceberg_lats[:] = iceberg_lat0
+        iceberg_lons[:] = iceberg_lon0
         iceberg_total_displacement = 0.
-        iceberg_overall_course = np.nan
+        iceberg_overall_course = 0.
 
-    iceberg_total_displacement, iceberg_overall_course = dist_bearing(Re, iceberg_lat0, iceberg_lat_final, iceberg_lon0, iceberg_lon_final)
     iceberg_mass = iceberg_mass / 1000. # Convert back to tonnes
     iceberg_times = np.array(iceberg_times)
     iceberg_times = iceberg_times.astype(str).tolist()
