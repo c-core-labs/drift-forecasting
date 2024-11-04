@@ -1006,6 +1006,8 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
     iceberg_total_displacement, iceberg_overall_course = dist_bearing(Re, iceberg_lat0, iceberg_lat_final, iceberg_lon0, iceberg_lon_final)
     iceberg_mass = iceberg_mass / 1000. # Convert back to tonnes
+    iceberg_times = np.array(iceberg_times)
+    iceberg_times = iceberg_times.astype(str).tolist()
     return (iceberg_lat0, iceberg_lon0, iceberg_lats, iceberg_lons, iceberg_times, iceberg_total_displacement, iceberg_overall_course,
             iceberg_length, iceberg_draft, iceberg_mass, rcm_datetime0, next_rcm_time, grounded_status)
 

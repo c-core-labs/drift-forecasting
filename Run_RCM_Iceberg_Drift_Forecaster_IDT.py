@@ -10,7 +10,7 @@ start_time = time.time()
 iceberg_lat0 = 48.6427
 iceberg_lon0 = -53.
 rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc))  # - np.timedelta64(12, 'h')
-next_rcm_time = rcm_datetime0 + np.timedelta64(16, 'h') # + np.timedelta64(32, 'm')
+next_rcm_time = rcm_datetime0 + np.timedelta64(16, 'h') + np.timedelta64(32, 'm')
 iceberg_length = 67.
 grounded_status = 'not grounded'
 (iceberg_lat0, iceberg_lon0, iceberg_lats, iceberg_lons, iceberg_times, iceberg_total_displacement, iceberg_overall_course,
