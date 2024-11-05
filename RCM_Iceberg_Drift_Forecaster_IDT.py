@@ -461,7 +461,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                         grid_pt_dist, grid_pt_bearing = dist_bearing(Re, curr_ssh_lat[k, n], curr_ssh_lat[k + 1, n], curr_ssh_lon[k, n], curr_ssh_lon[k + 1, n])
                         ssh_grad_y_lat[k, n], ssh_grad_y_lon[k, n] = dist_course(Re, curr_ssh_lat[k, n], curr_ssh_lon[k, n], grid_pt_dist / 2., grid_pt_bearing)
                         ssh_grad = (ssh[k + 1, n] - ssh[k, n]) / grid_pt_dist
-                        ssh_grad_y[k, n] = ssh_grad * np.cos(grid_pt_bearing * np.pi / 180.)
+                        ssh_grad_y[k, n] = -ssh_grad * np.cos(grid_pt_bearing * np.pi / 180.)
 
                 fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
                         'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
