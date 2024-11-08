@@ -522,6 +522,72 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                     depth_var[:] = depth_curr
                     v_curr_var[:] = v_curr
 
+            base_time_wind = forecast_times_wind[0]
+            time_increments_wind = np.arange(forecast_times_wind_hours[0], forecast_times_wind_hours[-1], 3)
+            file_times_wind = base_time_wind + time_increments_wind.astype('timedelta64[h]')
+            date_only_wind = str(base_time_wind.astype('datetime64[D]')).replace('-', '')
+
+            base_time_waves = forecast_times_waves[0]
+            time_increments_waves = np.arange(forecast_times_waves_hours[0], forecast_times_waves_hours[-1], 3)
+            file_times_waves = base_time_waves + time_increments_waves.astype('timedelta64[h]')
+            date_only_waves = str(base_time_waves.astype('datetime64[D]')).replace('-', '')
+
+            base_time_curr_ssh = forecast_times_curr_ssh[0]
+            time_increments_curr_ssh = np.arange(forecast_times_curr_ssh_hours[0], forecast_times_curr_ssh_hours[-1], 1)
+            file_times_curr_ssh = base_time_curr_ssh + time_increments_curr_ssh.astype('timedelta64[h]')
+            date_only_curr_ssh = str(base_time_curr_ssh.astype('datetime64[D]')).replace('-', '')
+
+            if not use_temporary_directory:
+                directory = './GDPS_wind_forecast_netcdf_files'
+
+            fname = directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
+                    str(forecast_times_wind_hours[0]).zfill(3) + '.nc'
+            wind_data = nc.Dataset(fname)
+            lat_wind = wind_data.variables['latitude'][:]
+            lon_wind = wind_data.variables['longitude'][:]
+            wind_data.close()
+
+            if not use_temporary_directory:
+                directory = './GDWPS_wave_forecast_netcdf_files'
+
+            fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_waves + \
+                    'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + str(forecast_times_waves_hours[0]).zfill(3) + 'H.nc'
+            wave_data = nc.Dataset(fname)
+            lat_waves = wave_data.variables['latitude'][:]
+            lon_waves = wave_data.variables['longitude'][:]
+            wave_data.close()
+
+            if not use_temporary_directory:
+                directory = './RIOPS_ocean_forecast_netcdf_files'
+
+            fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                    'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[0]).zfill(3) + '.nc'
+            curr_data = nc.Dataset(fname)
+            lat_curr = curr_data.variables['latitude'][:]  # lat x lon
+            lon_curr = curr_data.variables['longitude'][:]  # lat x lon
+            depth_curr = curr_data.variables['depth'][:]
+            curr_data.close()
+
+            points_curr = np.array([lat_curr.ravel(), lon_curr.ravel()]).T  # Shape (n_points, 2)
+
+            loc_depth = np.argwhere(depth_curr <= iceberg_draft)
+            loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
+            depth_curr_ib = depth_curr[loc_depth]
+            depth_curr_ib = list(depth_curr_ib[:, 0])
+            depth_curr_ib_interp = np.arange(0., iceberg_draft, 0.001)
+
+            fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                    'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + str(forecast_times_curr_ssh_hours[0]).zfill(3) + '.nc'
+            ssh_grad_data = nc.Dataset(fname)
+            ssh_grad_x_lat = ssh_grad_data.variables['ssh_grad_x_lat'][:]  # lat x lon
+            ssh_grad_x_lon = ssh_grad_data.variables['ssh_grad_x_lon'][:]  # lat x lon
+            ssh_grad_y_lat = ssh_grad_data.variables['ssh_grad_y_lat'][:]  # lat x lon
+            ssh_grad_y_lon = ssh_grad_data.variables['ssh_grad_y_lon'][:]  # lat x lon
+            ssh_grad_data.close()
+
+            points_ssh_grad_x = np.array([ssh_grad_x_lat.ravel(), ssh_grad_x_lon.ravel()]).T  # Shape (n_points, 2)
+            points_ssh_grad_y = np.array([ssh_grad_y_lat.ravel(), ssh_grad_y_lon.ravel()]).T  # Shape (n_points, 2)
+
             iceberg_us = np.empty((len(iceberg_times),))
             iceberg_vs = np.empty((len(iceberg_times),))
 
@@ -539,107 +605,89 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 iceberg_time = iceberg_times[i]
                 iceberg_time2 = iceberg_times[i + 1]
 
-                # The base time of the NetCDF files
-                base_time = forecast_times_wind[0]
-
-                # File time increments in hours (Pxxx values)
-                time_increments = np.arange(forecast_times_wind_hours[0], forecast_times_wind_hours[-1], 3)
-                file_times = base_time + time_increments.astype('timedelta64[h]')
-
                 # Find the time just before and just after the forecast_time
-                before_idx = np.where(file_times <= iceberg_time)[0][-1]
+                before_idx = np.where(file_times_wind <= iceberg_time)[0][-1]
 
                 try:
-                    after_idx = np.where(file_times > iceberg_time)[0][0]
+                    after_idx = np.where(file_times_wind > iceberg_time)[0][0]
                 except:
                     after_idx = -1
 
                 # The corresponding NetCDF files
-                date_only = str(base_time.astype('datetime64[D]')).replace('-', '')
-                u_wind_file_before = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only + hour_utc_str_wind + '_P' + str(time_increments[before_idx]).zfill(3) + '.nc'
-                u_wind_file_after = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only + hour_utc_str_wind + '_P' + str(time_increments[after_idx]).zfill(3) + '.nc'
-                v_wind_file_before = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only + hour_utc_str_wind + '_P' + str(time_increments[before_idx]).zfill(3) + '.nc'
-                v_wind_file_after = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only + hour_utc_str_wind + '_P' + str(time_increments[after_idx]).zfill(3) + '.nc'
+                u_wind_file_before = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
+                                     str(time_increments_wind[before_idx]).zfill(3) + '.nc'
+                u_wind_file_after = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
+                                    str(time_increments_wind[after_idx]).zfill(3) + '.nc'
+                v_wind_file_before = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
+                                     str(time_increments_wind[before_idx]).zfill(3) + '.nc'
+                v_wind_file_after = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
+                                    str(time_increments_wind[after_idx]).zfill(3) + '.nc'
 
                 forecast_time_wind_before = forecast_times_wind[before_idx]
                 forecast_time_wind_after = forecast_times_wind[after_idx]
 
-                base_time = forecast_times_waves[0]
-
-                # File time increments in hours (Pxxx values)
-                time_increments = np.arange(forecast_times_waves_hours[0], forecast_times_waves_hours[-1], 3)
-                file_times = base_time + time_increments.astype('timedelta64[h]')
-
                 # Find the time just before and just after the forecast_time
-                before_idx = np.where(file_times <= iceberg_time)[0][-1]
+                before_idx = np.where(file_times_waves <= iceberg_time)[0][-1]
 
                 try:
-                    after_idx = np.where(file_times > iceberg_time)[0][0]
+                    after_idx = np.where(file_times_waves > iceberg_time)[0][0]
                 except:
                     after_idx = -1
 
                 # The corresponding NetCDF files
-                date_only = str(base_time.astype('datetime64[D]')).replace('-', '')
-                Hs_file_before = date_only + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + \
-                                 str(time_increments[before_idx]).zfill(3) + 'H.nc'
-                Hs_file_after = date_only + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + \
-                                str(time_increments[after_idx]).zfill(3) + 'H.nc'
-                wave_dir_file_before = date_only + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_WVDIR_Sfc_LatLon0.25_PT' + \
-                                       str(time_increments[before_idx]).zfill(3) + 'H.nc'
-                wave_dir_file_after = date_only + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_WVDIR_Sfc_LatLon0.25_PT' + \
-                                      str(time_increments[after_idx]).zfill(3) + 'H.nc'
+                Hs_file_before = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + \
+                                 str(time_increments_waves[before_idx]).zfill(3) + 'H.nc'
+                Hs_file_after = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + \
+                                str(time_increments_waves[after_idx]).zfill(3) + 'H.nc'
+                wave_dir_file_before = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_WVDIR_Sfc_LatLon0.25_PT' + \
+                                       str(time_increments_waves[before_idx]).zfill(3) + 'H.nc'
+                wave_dir_file_after = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_WVDIR_Sfc_LatLon0.25_PT' + \
+                                      str(time_increments_waves[after_idx]).zfill(3) + 'H.nc'
 
                 forecast_time_waves_before = forecast_times_waves[before_idx]
                 forecast_time_waves_after = forecast_times_waves[after_idx]
 
-                base_time = forecast_times_curr_ssh[0]
-
-                # File time increments in hours (Pxxx values)
-                time_increments = np.arange(forecast_times_curr_ssh_hours[0], forecast_times_curr_ssh_hours[-1], 1)
-                file_times = base_time + time_increments.astype('timedelta64[h]')
-
                 # Find the time just before and just after the forecast_time
-                before_idx = np.where(file_times <= iceberg_time)[0][-1]
+                before_idx = np.where(file_times_curr_ssh <= iceberg_time)[0][-1]
 
                 try:
-                    after_idx = np.where(file_times > iceberg_time)[0][0]
+                    after_idx = np.where(file_times_curr_ssh > iceberg_time)[0][0]
                 except:
                     after_idx = -1
 
                 # The corresponding NetCDF files
-                date_only = str(base_time.astype('datetime64[D]')).replace('-', '')
-                u_curr_file_before = date_only + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
-                                     str(time_increments[before_idx]).zfill(3) + '.nc'
-                u_curr_file_after = date_only + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
-                                    str(time_increments[after_idx]).zfill(3) + '.nc'
-                v_curr_file_before = date_only + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
-                                     str(time_increments[before_idx]).zfill(3) + '.nc'
-                v_curr_file_after = date_only + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
-                                    str(time_increments[after_idx]).zfill(3) + '.nc'
-                ssh_grad_file_before = date_only + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + \
-                str(time_increments[before_idx]).zfill(3) + '.nc'
-                ssh_grad_file_after = date_only + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + \
-                str(time_increments[after_idx]).zfill(3) + '.nc'
+                u_curr_file_before = date_only_curr_ssh + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
+                                     str(time_increments_curr_ssh[before_idx]).zfill(3) + '.nc'
+                u_curr_file_after = date_only_curr_ssh + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
+                                    str(time_increments_curr_ssh[after_idx]).zfill(3) + '.nc'
+                v_curr_file_before = date_only_curr_ssh + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
+                                     str(time_increments_curr_ssh[before_idx]).zfill(3) + '.nc'
+                v_curr_file_after = date_only_curr_ssh + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
+                                    str(time_increments_curr_ssh[after_idx]).zfill(3) + '.nc'
+                ssh_grad_file_before = date_only_curr_ssh + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + \
+                str(time_increments_curr_ssh[before_idx]).zfill(3) + '.nc'
+                ssh_grad_file_after = date_only_curr_ssh + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + \
+                str(time_increments_curr_ssh[after_idx]).zfill(3) + '.nc'
 
                 forecast_time_curr_ssh_before = forecast_times_curr_ssh[before_idx]
                 forecast_time_curr_ssh_after = forecast_times_curr_ssh[after_idx]
 
-                before_idx = np.where(file_times <= iceberg_time2)[0][-1]
+                before_idx = np.where(file_times_curr_ssh <= iceberg_time2)[0][-1]
 
                 try:
-                    after_idx = np.where(file_times > iceberg_time2)[0][0]
+                    after_idx = np.where(file_times_curr_ssh > iceberg_time2)[0][0]
                 except:
                     after_idx = -1
 
                 # The corresponding NetCDF files
-                u_curr_file_before2 = date_only + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
-                str(time_increments[before_idx]).zfill(3) + '.nc'
-                u_curr_file_after2 = date_only + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
-                                     str(time_increments[after_idx]).zfill(3) + '.nc'
-                v_curr_file_before2 = date_only + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
-                                      str(time_increments[before_idx]).zfill(3) + '.nc'
-                v_curr_file_after2 = date_only + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
-                                     str(time_increments[after_idx]).zfill(3) + '.nc'
+                u_curr_file_before2 = date_only_curr_ssh + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
+                str(time_increments_curr_ssh[before_idx]).zfill(3) + '.nc'
+                u_curr_file_after2 = date_only_curr_ssh + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
+                                     str(time_increments_curr_ssh[after_idx]).zfill(3) + '.nc'
+                v_curr_file_before2 = date_only_curr_ssh + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
+                                      str(time_increments_curr_ssh[before_idx]).zfill(3) + '.nc'
+                v_curr_file_after2 = date_only_curr_ssh + 'T' + hour_utc_str_curr_ssh + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
+                                     str(time_increments_curr_ssh[after_idx]).zfill(3) + '.nc'
 
                 forecast_time_curr_ssh_before2 = forecast_times_curr_ssh[before_idx]
                 forecast_time_curr_ssh_after2 = forecast_times_curr_ssh[after_idx]
@@ -649,8 +697,6 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 fname = directory + '/' + dirname_wind_waves + '/' + u_wind_file_before
                 u_wind_data_before = nc.Dataset(fname)
-                lat_wind = u_wind_data_before.variables['latitude'][:]
-                lon_wind = u_wind_data_before.variables['longitude'][:]
                 u_wind_before = np.squeeze(u_wind_data_before.variables['UGRD_10maboveground'][:])  # lat x lon
                 u_wind_data_before.close()
 
@@ -676,8 +722,6 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 fname = directory + '/' + dirname_wind_waves + '/' + v_wind_file_before
                 v_wind_data_before = nc.Dataset(fname)
-                lat_wind = v_wind_data_before.variables['latitude'][:]
-                lon_wind = v_wind_data_before.variables['longitude'][:]
                 v_wind_before = np.squeeze(v_wind_data_before.variables['VGRD_10maboveground'][:])  # lat x lon
                 v_wind_data_before.close()
 
@@ -699,8 +743,6 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 fname = directory + '/' + dirname_wind_waves + '/' + Hs_file_before
                 Hs_data_before = nc.Dataset(fname)
-                lat_waves = Hs_data_before.variables['latitude'][:]
-                lon_waves = Hs_data_before.variables['longitude'][:]
                 Hs_before = np.squeeze(Hs_data_before.variables['HTSGW_surface'][:])  # lat x lon
                 Hs_data_before.close()
 
@@ -760,9 +802,6 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 fname = directory + '/' + dirname_curr_ssh + '/' + u_curr_file_before
                 u_curr_data_before = nc.Dataset(fname)
-                lat_curr = u_curr_data_before.variables['latitude'][:] # lat x lon
-                lon_curr = u_curr_data_before.variables['longitude'][:] # lat x lon
-                depth_curr = u_curr_data_before.variables['depth'][:]
                 u_curr_before = np.squeeze(u_curr_data_before.variables['vozocrtx'][:]) # depth x lat x lon
                 u_curr_data_before.close()
 
@@ -781,17 +820,11 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 v_curr_after = np.squeeze(v_curr_data_after.variables['vomecrty'][:])  # depth x lat x lon
                 v_curr_data_after.close()
 
-                loc_depth = np.argwhere(depth_curr <= iceberg_draft)
-                loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
-                depth_curr_ib = depth_curr[loc_depth]
-                depth_curr_ib_interp = np.arange(0., iceberg_draft, 0.001)
-
                 u_curr_before = u_curr_before[loc_depth, :, :]
                 u_curr_after = u_curr_after[loc_depth, :, :]
                 v_curr_before = v_curr_before[loc_depth, :, :]
                 v_curr_after = v_curr_after[loc_depth, :, :]
 
-                points_curr = np.array([lat_curr.ravel(), lon_curr.ravel()]).T  # Shape (n_points, 2)
                 u_curr_before_depth_list = []
                 u_curr_after_depth_list = []
                 v_curr_before_depth_list = []
@@ -841,9 +874,6 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 fname = directory + '/' + dirname_curr_ssh + '/' + u_curr_file_before2
                 u_curr_data_before2 = nc.Dataset(fname)
-                lat_curr = u_curr_data_before2.variables['latitude'][:]  # lat x lon
-                lon_curr = u_curr_data_before2.variables['longitude'][:]  # lat x lon
-                depth_curr = u_curr_data_before2.variables['depth'][:]
                 u_curr_before2 = np.squeeze(u_curr_data_before2.variables['vozocrtx'][:])  # depth x lat x lon
                 u_curr_data_before2.close()
 
@@ -862,17 +892,11 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 v_curr_after2 = np.squeeze(v_curr_data_after2.variables['vomecrty'][:])  # depth x lat x lon
                 v_curr_data_after2.close()
 
-                loc_depth = np.argwhere(depth_curr <= iceberg_draft)
-                loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
-                depth_curr_ib = depth_curr[loc_depth]
-                depth_curr_ib_interp = np.arange(0., iceberg_draft, 0.001)
-
                 u_curr_before2 = u_curr_before2[loc_depth, :, :]
                 u_curr_after2 = u_curr_after2[loc_depth, :, :]
                 v_curr_before2 = v_curr_before2[loc_depth, :, :]
                 v_curr_after2 = v_curr_after2[loc_depth, :, :]
 
-                points_curr = np.array([lat_curr.ravel(), lon_curr.ravel()]).T  # Shape (n_points, 2)
                 u_curr_before2_depth_list = []
                 u_curr_after2_depth_list = []
                 v_curr_before2_depth_list = []
@@ -922,10 +946,6 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 fname = directory + '/' + dirname_curr_ssh + '/' + ssh_grad_file_before
                 ssh_grad_data_before = nc.Dataset(fname)
-                ssh_grad_x_lat = ssh_grad_data_before.variables['ssh_grad_x_lat'][:]  # lat x lon
-                ssh_grad_x_lon = ssh_grad_data_before.variables['ssh_grad_x_lon'][:]  # lat x lon
-                ssh_grad_y_lat = ssh_grad_data_before.variables['ssh_grad_y_lat'][:]  # lat x lon
-                ssh_grad_y_lon = ssh_grad_data_before.variables['ssh_grad_y_lon'][:]  # lat x lon
                 ssh_grad_x_before = np.squeeze(ssh_grad_data_before.variables['ssh_grad_x'][:])  # lat x lon
                 ssh_grad_y_before = np.squeeze(ssh_grad_data_before.variables['ssh_grad_y'][:])  # lat x lon
                 ssh_grad_data_before.close()
@@ -935,9 +955,6 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 ssh_grad_x_after = np.squeeze(ssh_grad_data_after.variables['ssh_grad_x'][:])  # lat x lon
                 ssh_grad_y_after = np.squeeze(ssh_grad_data_after.variables['ssh_grad_y'][:])  # lat x lon
                 ssh_grad_data_after.close()
-
-                points_ssh_grad_x = np.array([ssh_grad_x_lat.ravel(), ssh_grad_x_lon.ravel()]).T  # Shape (n_points, 2)
-                points_ssh_grad_y = np.array([ssh_grad_y_lat.ravel(), ssh_grad_y_lon.ravel()]).T  # Shape (n_points, 2)
 
                 ssh_grad_x_before_ib = griddata(points_ssh_grad_x, ssh_grad_x_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
                 ssh_grad_y_before_ib = griddata(points_ssh_grad_y, ssh_grad_y_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
@@ -980,12 +997,6 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 iceberg_lats[i + 1] = iceberg_lat2
                 iceberg_lons[i + 1] = iceberg_lon2
 
-                bathy_data = nc.Dataset(bathy_data_path)
-                bathy_lat = bathy_data.variables['lat'][:]
-                bathy_lon = bathy_data.variables['lon'][:]
-                bathy_depth = -bathy_data.variables['elevation'][:]  # lat x lon
-                bathy_data.close()
-                bathy_interp = RegularGridInterpolator((bathy_lat, bathy_lon), bathy_depth, method='linear', bounds_error=True, fill_value=np.nan)
                 iceberg_bathy_depth = bathy_interp([[iceberg_lat2, iceberg_lon2]])[0]
 
                 if iceberg_bathy_depth <= iceberg_draft:
