@@ -66,19 +66,21 @@ Since the iceberg’s waterline length is the only physical dimension extracted 
 
 11.	The ocean current and sea surface height files are stripped down to only retain data within 10 grid points of the original iceberg position. At five-km resolution, this represents around 50 km, which should be more than enough to cover iceberg drift over the next 12-24 hours. This parameter is the deg_radius set at the beginning of (but inside) the function and can be increased if needed. This step is performed to save significant processing time. Using the whole RIOPS grid for the ocean current and sea surface height files was found to greatly increase the function’s runtime to over an hour in many cases due to the more intensive interpolation processes on a larger grid, plus the extra time needed to compute the larger sea surface height gradient grids. The stripped-down forecast sea surface height gradients are also computed in this step and saved into their own netCDF files.
 
-12.	Arrays are initialized for the hourly forecast iceberg zonal/meridional drift velocities.
+12.	The latitude-longitude grids are loaded for the winds, waves, ocean currents, and sea surface height gradients. The maximum depth of the ocean currents is determined based on the calculated iceberg draft.
 
-13.	The iceberg drift forecast loop begins. The iceberg position and drift velocity components are set in the first time-step of their respective forecast arrays with the initial iceberg position and drift velocity at the RCM image acquisition date/time.
+13.	Arrays are initialized for the hourly forecast iceberg zonal/meridional drift velocities.
 
-14.	At each time-step, the forecast wind, wave, ocean current, and sea surface height gradient files are found that align with times just before and after the current iceberg forecast time, or that align exactly with the current iceberg forecast time if they exist.
+14.	The iceberg drift forecast loop begins. The iceberg position and drift velocity components are set in the first time-step of their respective forecast arrays with the initial iceberg position and drift velocity at the RCM image acquisition date/time.
 
-15.	The forecast wind velocity components, wave parameters, ocean current velocity components, and sea surface height gradient components from each of the before and after files are spatially interpolated to the iceberg forecast position at the present time-step. Ocean current velocities are only processed to a depth equal to or just greater than the calculated iceberg draft. The ocean current velocities are then averaged over the draft depth of the iceberg. The linearly interpolated value of each metocean variable in time is then calculated for the present time-step.
+15.	At each time-step, the forecast wind, wave, ocean current, and sea surface height gradient files are found that align with times just before and after the current iceberg forecast time, or that align exactly with the current iceberg forecast time if they exist.
 
-16.	The iceberg zonal and meridional acceleration components are computed at the present time-step, and an implicit, unconditionally stable numerical integration algorithm is used to determine the iceberg drift velocity at the next time-step. The iceberg position at the next time-step is then calculated using the Euler forward integration algorithm, integrated using drift velocities averaged between the present and next time-steps.
+16.	The forecast wind velocity components, wave parameters, ocean current velocity components, and sea surface height gradient components from each of the before and after files are spatially interpolated to the iceberg forecast position at the present time-step. Ocean current velocities are only processed to a depth equal to or just greater than the calculated iceberg draft. The ocean current velocities are then averaged over the draft depth of the iceberg. The linearly interpolated value of each metocean variable in time is then calculated for the present time-step.
 
-17.	At each time-step, the water depth is checked at the forecast iceberg location. If the water depth is equal to or less than the iceberg draft, the iceberg drift is halted at that point the iceberg’s status is changed to “grounded.”
+17.	The iceberg zonal and meridional acceleration components are computed at the present time-step, and an implicit, unconditionally stable numerical integration algorithm is used to determine the iceberg drift velocity at the next time-step. The iceberg position at the next time-step is then calculated using the Euler forward integration algorithm, integrated using drift velocities averaged between the present and next time-steps.
 
-18.	The function will finally return the following variables:
+18.	At each time-step, the water depth is checked at the forecast iceberg location. If the water depth is equal to or less than the iceberg draft, the iceberg drift is halted at that point the iceberg’s status is changed to “grounded.”
+
+19.	The function will finally return the following variables:
 
 •	The original (at the RCM image acquisition date/time) iceberg latitude/longitude coordinates (in degrees North and East, respectively),
 •	The hourly forecast iceberg latitude/longitude (in degrees North and East, respectively) positions up to the next RCM image acquisition date/time,
@@ -101,6 +103,8 @@ Key Operating Assumptions:
 5.	The icebergs are in open water and not in sea ice; the current version of the model does not include sea ice forcing on iceberg drift.
 
 6.	Icebergs are entered into the function one at a time.
+
+7.	Iceberg keel cross-sectional areas are assumed to be rectangular.
 
 References:
 
