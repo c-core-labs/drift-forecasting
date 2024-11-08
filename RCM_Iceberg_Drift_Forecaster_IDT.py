@@ -572,8 +572,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
             loc_depth = np.argwhere(depth_curr <= iceberg_draft)
             loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
-            depth_curr_ib = depth_curr[loc_depth]
-            depth_curr_ib = list(depth_curr_ib)
+            depth_curr_ib = list(depth_curr[loc_depth])
             depth_curr_ib_interp = np.arange(0., iceberg_draft, 0.001)
 
             fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
