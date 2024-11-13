@@ -978,6 +978,12 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 iceberg_u_end = solution.y[0][-1]  # Final u-velocity
                 iceberg_v_end = solution.y[1][-1]  # Final v-velocity
 
+                final_speed = np.sqrt(iceberg_u_end ** 2 + iceberg_v_end ** 2)
+
+                if final_speed >= 2:
+                    iceberg_u_end = iceberg_u
+                    iceberg_v_end = iceberg_v
+
                 if grounded_status == 'grounded':
                     iceberg_u_end = 0.
                     iceberg_v_end = 0.
