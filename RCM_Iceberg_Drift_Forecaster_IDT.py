@@ -75,17 +75,17 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
         Fa_E = 0.5 * rho_air * Ca * iceberg_sail * np.sqrt((u_wind - iceberg_u) ** 2 + (v_wind - iceberg_v) ** 2) * (u_wind - iceberg_u)
         Fw_E = 0.5 * rho_water * Cw * iceberg_keel * np.sqrt((u_curr[0] - iceberg_u) ** 2 + (v_curr[0] - iceberg_v) ** 2) * (u_curr[0] - iceberg_u)
-        f = 2. * omega * np.sin(iceberg_lat * np.pi / 180.)
+        f = 2. * omega * np.sin(np.deg2rad(iceberg_lat))
         Fc_E = (iceberg_mass + am * iceberg_mass) * f * iceberg_v
         Fp_E = (iceberg_mass + am * iceberg_mass) * (u_curr[1] - u_curr[0]) / dt + f * v_curr[0]
         Fs_E = -(iceberg_mass + am * iceberg_mass) * g * ssh_grad_x
-        Fr_E = 0.25 * C_wave * rho_water * g * ((0.5 * Hs) ** 2) * iceberg_length * np.sin(wave_dir * np.pi / 180.)
+        Fr_E = 0.25 * C_wave * rho_water * g * ((0.5 * Hs) ** 2) * iceberg_length * np.sin(np.deg2rad(wave_dir))
         Fa_N = 0.5 * rho_air * Ca * iceberg_sail * np.sqrt((u_wind - iceberg_u) ** 2 + (v_wind - iceberg_v) ** 2) * (v_wind - iceberg_v)
         Fw_N = 0.5 * rho_water * Cw * iceberg_keel * np.sqrt((u_curr[0] - iceberg_u) ** 2 + (v_curr[0] - iceberg_v) ** 2) * (v_curr[0] - iceberg_v)
         Fc_N = -(iceberg_mass + am * iceberg_mass) * f * iceberg_u
         Fp_N = (iceberg_mass + am * iceberg_mass) * (v_curr[1] - v_curr[0]) / dt - f * u_curr[0]
         Fs_N = -(iceberg_mass + am * iceberg_mass) * g * ssh_grad_y
-        Fr_N = 0.25 * C_wave * rho_water * g * ((0.5 * Hs) ** 2) * iceberg_length * np.cos(wave_dir * np.pi / 180.)
+        Fr_N = 0.25 * C_wave * rho_water * g * ((0.5 * Hs) ** 2) * iceberg_length * np.cos(np.deg2rad(wave_dir))
         F_sum_E = Fa_E + Fw_E + Fc_E + Fp_E + Fs_E + Fr_E
         F_sum_N = Fa_N + Fw_N + Fc_N + Fp_N + Fs_N + Fr_N
         ib_acc_E = F_sum_E / (iceberg_mass + am * iceberg_mass)
@@ -455,14 +455,14 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                         grid_pt_dist, grid_pt_bearing = dist_bearing(Re, curr_ssh_lat[k, n], curr_ssh_lat[k, n + 1], curr_ssh_lon[k, n], curr_ssh_lon[k, n + 1])
                         ssh_grad_x_lat[k, n], ssh_grad_x_lon[k, n] = dist_course(Re, curr_ssh_lat[k, n], curr_ssh_lon[k, n], grid_pt_dist / 2., grid_pt_bearing)
                         ssh_grad = (ssh[k, n + 1] - ssh[k, n]) / grid_pt_dist
-                        ssh_grad_x[k, n] = ssh_grad * np.sin(grid_pt_bearing * np.pi / 180.)
+                        ssh_grad_x[k, n] = ssh_grad * np.sin(np.deg2rad(grid_pt_bearing))
 
                 for k in range(len(curr_ssh_lat[:, 0]) - 1):
                     for n in range(len(curr_ssh_lon[0, :])):
                         grid_pt_dist, grid_pt_bearing = dist_bearing(Re, curr_ssh_lat[k, n], curr_ssh_lat[k + 1, n], curr_ssh_lon[k, n], curr_ssh_lon[k + 1, n])
                         ssh_grad_y_lat[k, n], ssh_grad_y_lon[k, n] = dist_course(Re, curr_ssh_lat[k, n], curr_ssh_lon[k, n], grid_pt_dist / 2., grid_pt_bearing)
                         ssh_grad = (ssh[k + 1, n] - ssh[k, n]) / grid_pt_dist
-                        ssh_grad_y[k, n] = -ssh_grad * np.cos(grid_pt_bearing * np.pi / 180.)
+                        ssh_grad_y[k, n] = -ssh_grad * np.cos(np.deg2rad(grid_pt_bearing))
 
                 fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
                         'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
@@ -775,10 +775,10 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 wave_dir_after = np.squeeze(wave_dir_data_after.variables['WVDIR_surface'][:])  # lat x lon
                 wave_dir_data_after.close()
 
-                wave_E_before = np.sin(wave_dir_before * np.pi / 180.)
-                wave_E_after = np.sin(wave_dir_after * np.pi / 180.)
-                wave_N_before = np.cos(wave_dir_before * np.pi / 180.)
-                wave_N_after = np.cos(wave_dir_after * np.pi / 180.)
+                wave_E_before = np.sin(np.deg2rad(wave_dir_before))
+                wave_E_after = np.sin(np.deg2rad(wave_dir_after))
+                wave_N_before = np.cos(np.deg2rad(wave_dir_before))
+                wave_N_after = np.cos(np.deg2rad(wave_dir_after))
 
                 f_wave_E_before = RegularGridInterpolator((lat_waves, lon_waves), wave_E_before, method='nearest', bounds_error=True, fill_value=np.nan)
                 f_wave_E_after = RegularGridInterpolator((lat_waves, lon_waves), wave_E_after, method='nearest', bounds_error=True, fill_value=np.nan)
