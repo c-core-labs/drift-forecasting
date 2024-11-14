@@ -65,7 +65,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
     def iceberg_acc(iceberg_lat, iceberg_u, iceberg_v, iceberg_sail, iceberg_draft, iceberg_length, dt, am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
                       u_wind, v_wind, u_curr, v_curr, ssh_grad_x, ssh_grad_y, Hs, wave_dir):
         iceberg_keel = iceberg_length * iceberg_draft
-        wind_dir = 90. - np.arctan2(v_wind, u_wind) * 180. / np.pi
+        wind_dir = 90. - np.rad2deg(np.arctan2(v_wind, u_wind))
 
         if wind_dir < 0:
             wind_dir = wind_dir + 360.
@@ -792,7 +792,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 wave_E_ib = wave_E_before_ib + weight * (wave_E_after_ib - wave_E_before_ib)
                 wave_N_ib = wave_N_before_ib + weight * (wave_N_after_ib - wave_N_before_ib)
-                wave_dir_ib = 90. - np.arctan2(wave_N_ib, wave_E_ib) * 180. / np.pi
+                wave_dir_ib = 90. - np.rad2deg(np.arctan2(wave_N_ib, wave_E_ib))
 
                 if wave_dir_ib < 0:
                     wave_dir_ib = wave_dir_ib + 360.
@@ -992,7 +992,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 iceberg_x = np.nanmean([iceberg_u, iceberg_u_end]) * iceberg_times_dt[i]
                 iceberg_y = np.nanmean([iceberg_v, iceberg_v_end]) * iceberg_times_dt[i]
                 iceberg_dist = np.sqrt(iceberg_x ** 2 + iceberg_y ** 2)
-                iceberg_course = 90. - np.arctan2(iceberg_y, iceberg_x) * 180. / np.pi
+                iceberg_course = 90. - np.rad2deg(np.arctan2(iceberg_y, iceberg_x))
 
                 if iceberg_course < 0:
                     iceberg_course = iceberg_course + 360.
