@@ -7,11 +7,11 @@ warnings.simplefilter(action='ignore')
 
 start_time = time.time()
 
-iceberg_lat0 = 48.6427
-iceberg_lon0 = -53.
+iceberg_lat0 = 47.5
+iceberg_lon0 = -46.5
 rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc))  # - np.timedelta64(12, 'h')
-next_rcm_time = rcm_datetime0 + np.timedelta64(16, 'h') + np.timedelta64(32, 'm')
-iceberg_length = 67.
+next_rcm_time = rcm_datetime0 + np.timedelta64(12, 'h') + np.timedelta64(30, 'm')
+iceberg_length = 50.
 grounded_status = 'not grounded'
 (iceberg_lat0, iceberg_lon0, iceberg_lats, iceberg_lons, iceberg_times, iceberg_total_displacement, iceberg_overall_course,
  iceberg_length, iceberg_draft, iceberg_mass, rcm_datetime0, next_rcm_time, grounded_status) = (
