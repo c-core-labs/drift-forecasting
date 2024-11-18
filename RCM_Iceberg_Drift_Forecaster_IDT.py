@@ -244,6 +244,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 while flag:
                     try:
+                        print('Obtaining forecast zonal wind velocity file ' + fname)
                         r = requests.get(url, allow_redirects=True, timeout=5.0)
                         open(fname, 'wb').write(r.content)
                         flag = False
@@ -271,6 +272,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 while flag:
                     try:
+                        print('Obtaining forecast meridional wind velocity file ' + fname)
                         r = requests.get(url, allow_redirects=True, timeout=5.0)
                         open(fname, 'wb').write(r.content)
                         flag = False
@@ -304,6 +306,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 while flag:
                     try:
+                        print('Obtaining forecast significant wave height file ' + fname)
                         r = requests.get(url, allow_redirects=True, timeout=5.0)
                         open(fname, 'wb').write(r.content)
                         flag = False
@@ -330,6 +333,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 while flag:
                     try:
+                        print('Obtaining forecast wave direction file ' + fname)
                         r = requests.get(url, allow_redirects=True, timeout=5.0)
                         open(fname, 'wb').write(r.content)
                         flag = False
@@ -364,6 +368,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 while flag:
                     try:
+                        print('Obtaining forecast zonal ocean current file ' + fname)
                         r = requests.get(url, allow_redirects=True, timeout=5.0)
                         open(fname, 'wb').write(r.content)
                         flag = False
@@ -379,6 +384,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 while flag:
                     try:
+                        print('Obtaining forecast meridional ocean current file ' + fname)
                         r = requests.get(url, allow_redirects=True, timeout=5.0)
                         open(fname, 'wb').write(r.content)
                         flag = False
@@ -394,6 +400,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 while flag:
                     try:
+                        print('Obtaining forecast sea surface height file ' + fname)
                         r = requests.get(url, allow_redirects=True, timeout=5.0)
                         open(fname, 'wb').write(r.content)
                         flag = False
@@ -467,6 +474,8 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
                         'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
 
+                print('Writing forecast sea surface height gradient file ' + fname)
+
                 with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
                     ncfile.createDimension('x_gradient_latitude', len(curr_ssh_lat[:, 0]))
                     ncfile.createDimension('x_gradient_longitude', len(curr_ssh_lon[0, :]) - 1)
@@ -490,6 +499,8 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
                         'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
 
+                print('Shrinking forecast zonal ocean current file ' + fname)
+
                 with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
                     ncfile.createDimension('latitude', len(curr_ssh_lat[:, 0]))
                     ncfile.createDimension('longitude', len(curr_ssh_lon[0, :]))
@@ -507,6 +518,8 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
                         'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
+
+                print('Shrinking forecast meridional ocean current file ' + fname)
 
                 with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
                     ncfile.createDimension('latitude', len(curr_ssh_lat[:, 0]))
