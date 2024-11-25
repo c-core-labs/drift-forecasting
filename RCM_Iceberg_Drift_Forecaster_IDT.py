@@ -77,13 +77,13 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
         Fw_E = 0.5 * rho_water * Cw * iceberg_keel * np.sqrt((u_curr[0] - iceberg_u) ** 2 + (v_curr[0] - iceberg_v) ** 2) * (u_curr[0] - iceberg_u)
         f = 2. * omega * np.sin(np.deg2rad(iceberg_lat))
         Fc_E = (iceberg_mass + am * iceberg_mass) * f * iceberg_v
-        Fp_E = (iceberg_mass + am * iceberg_mass) * (u_curr[1] - u_curr[0]) / dt + f * v_curr[0]
+        Fp_E = (iceberg_mass + am * iceberg_mass) * ((u_curr[1] - u_curr[0]) / dt + f * v_curr[0])
         Fs_E = -(iceberg_mass + am * iceberg_mass) * g * ssh_grad_x
         Fr_E = 0.25 * C_wave * rho_water * g * ((0.5 * Hs) ** 2) * iceberg_length * np.sin(np.deg2rad(wave_dir))
         Fa_N = 0.5 * rho_air * Ca * iceberg_sail * np.sqrt((u_wind - iceberg_u) ** 2 + (v_wind - iceberg_v) ** 2) * (v_wind - iceberg_v)
         Fw_N = 0.5 * rho_water * Cw * iceberg_keel * np.sqrt((u_curr[0] - iceberg_u) ** 2 + (v_curr[0] - iceberg_v) ** 2) * (v_curr[0] - iceberg_v)
         Fc_N = -(iceberg_mass + am * iceberg_mass) * f * iceberg_u
-        Fp_N = (iceberg_mass + am * iceberg_mass) * (v_curr[1] - v_curr[0]) / dt - f * u_curr[0]
+        Fp_N = (iceberg_mass + am * iceberg_mass) * ((v_curr[1] - v_curr[0]) / dt - f * u_curr[0])
         Fs_N = -(iceberg_mass + am * iceberg_mass) * g * ssh_grad_y
         Fr_N = 0.25 * C_wave * rho_water * g * ((0.5 * Hs) ** 2) * iceberg_length * np.cos(np.deg2rad(wave_dir))
         F_sum_E = Fa_E + Fw_E + Fc_E + Fp_E + Fs_E + Fr_E
