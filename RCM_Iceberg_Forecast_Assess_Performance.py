@@ -38,7 +38,7 @@ def assess_rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime
         lon2 = np.degrees(lon2)
         return lat2, lon2
 
-    def iceberg_acc(iceberg_lat, iceberg_u, iceberg_v, iceberg_sail, iceberg_draft, iceberg_length, dt, am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
+    def iceberg_acc(iceberg_lat, iceberg_u, iceberg_v, iceberg_sail, iceberg_draft, iceberg_length, iceberg_mass, dt, am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
                       u_wind, v_wind, u_curr, v_curr, ssh_grad_x, ssh_grad_y, Hs, wave_dir):
         iceberg_keel = iceberg_length * iceberg_draft
         wind_dir = 90. - np.rad2deg(np.arctan2(v_wind, u_wind))
@@ -287,7 +287,7 @@ def assess_rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime
             def duv_dt(t, uv):
                 iceberg_u_init, iceberg_v_init = uv
                 ib_acc_E, ib_acc_N = iceberg_acc(iceberg_lat, iceberg_u_init, iceberg_v_init, iceberg_sail, iceberg_draft, iceberg_length,
-                                                 iceberg_times_dt[i], am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
+                                                 iceberg_mass, iceberg_times_dt[i], am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
                                                  u_wind_ib, v_wind_ib, [u_curr_ib, u_curr_ib2], [v_curr_ib, v_curr_ib2],
                                                  ssh_grad_x_ib, ssh_grad_y_ib, Hs_ib, wave_dir_ib)
                 return ib_acc_E, ib_acc_N
