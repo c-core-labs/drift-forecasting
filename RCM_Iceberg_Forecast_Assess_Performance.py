@@ -19,6 +19,7 @@ def assess_rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime
     g = 9.80665
     rho_water = 1023.6
     rho_air = 1.225
+    rho_ice = 910.
     omega = 7.292115e-5
     Cw = 0.7867
     Ca = 1.1857
@@ -85,9 +86,10 @@ def assess_rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime
     if not isinstance(iceberg_length, (int, float)) or iceberg_length <= 0:
         iceberg_length = 100.
 
-    iceberg_draft = 1.78 * (iceberg_length ** 0.71)  # meters
-    iceberg_mass = 0.43 * (iceberg_length ** 2.9) * 1000.  # kg
-    iceberg_sail = 0.077 * (iceberg_length ** 2)  # m ** 2
+    iceberg_draft = 1.78 * (iceberg_length ** 0.71) # meters
+    # iceberg_mass = 0.43 * (iceberg_length ** 2.9) * 1000. # kg
+    iceberg_mass = 0.45 * rho_ice * (iceberg_length ** 3) # kg
+    iceberg_sail = 0.077 * (iceberg_length ** 2) # m ** 2
     bathy_data = nc.Dataset(bathy_data_path)
     bathy_lat = bathy_data.variables['lat'][:]
     bathy_lon = bathy_data.variables['lon'][:]
