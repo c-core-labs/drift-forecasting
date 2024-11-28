@@ -663,18 +663,18 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 #                      str(time_increments_wind[before_idx]).zfill(3) + '.nc'
                 # u_wind_file_after = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
                 #                     str(time_increments_wind[after_idx]).zfill(3) + '.nc'
-                u_wind_file_before = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
-                                 str(time_increments_waves[before_idx]).zfill(3) + 'H.nc'
-                u_wind_file_after = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
-                                str(time_increments_waves[after_idx]).zfill(3) + 'H.nc'
+                u_wind_file_before = date_only_wind + 'T' + hour_utc_str_wind + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
+                                 str(time_increments_wind[before_idx]).zfill(3) + 'H.nc'
+                u_wind_file_after = date_only_wind + 'T' + hour_utc_str_wind + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
+                                str(time_increments_wind[after_idx]).zfill(3) + 'H.nc'
                 # v_wind_file_before = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
                 #                      str(time_increments_wind[before_idx]).zfill(3) + '.nc'
                 # v_wind_file_after = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
                 #                     str(time_increments_wind[after_idx]).zfill(3) + '.nc'
-                v_wind_file_before = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
-                                     str(time_increments_waves[before_idx]).zfill(3) + 'H.nc'
-                v_wind_file_after = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
-                                    str(time_increments_waves[after_idx]).zfill(3) + 'H.nc'
+                v_wind_file_before = date_only_wind + 'T' + hour_utc_str_wind + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
+                                     str(time_increments_wind[before_idx]).zfill(3) + 'H.nc'
+                v_wind_file_after = date_only_wind + 'T' + hour_utc_str_wind + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
+                                    str(time_increments_wind[after_idx]).zfill(3) + 'H.nc'
 
                 forecast_time_wind_before = forecast_times_wind[before_idx]
                 forecast_time_wind_after = forecast_times_wind[after_idx]
@@ -760,8 +760,8 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 f_u_wind_before = RegularGridInterpolator((lat_wind, lon_wind), u_wind_before, method='linear', bounds_error=True, fill_value=np.nan)
                 f_u_wind_after = RegularGridInterpolator((lat_wind, lon_wind), u_wind_after, method='linear', bounds_error=True, fill_value=np.nan)
-                u_wind_before_ib = float(f_u_wind_before([iceberg_lat, iceberg_lon]))
-                u_wind_after_ib = float(f_u_wind_after([iceberg_lat, iceberg_lon]))
+                u_wind_before_ib = float(f_u_wind_before([iceberg_lat, iceberg_lon + 360.]))
+                u_wind_after_ib = float(f_u_wind_after([iceberg_lat, iceberg_lon + 360.]))
 
                 t1 = (forecast_time_wind_before - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
                 t2 = (forecast_time_wind_after - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
@@ -785,8 +785,8 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
                 f_v_wind_before = RegularGridInterpolator((lat_wind, lon_wind), v_wind_before, method='linear', bounds_error=True, fill_value=np.nan)
                 f_v_wind_after = RegularGridInterpolator((lat_wind, lon_wind), v_wind_after, method='linear', bounds_error=True, fill_value=np.nan)
-                v_wind_before_ib = float(f_v_wind_before([iceberg_lat, iceberg_lon]))
-                v_wind_after_ib = float(f_v_wind_after([iceberg_lat, iceberg_lon]))
+                v_wind_before_ib = float(f_v_wind_before([iceberg_lat, iceberg_lon + 360.]))
+                v_wind_after_ib = float(f_v_wind_after([iceberg_lat, iceberg_lon + 360.]))
 
                 # Perform the linear interpolation for the scalar value
                 v_wind_ib = v_wind_before_ib + weight * (v_wind_after_ib - v_wind_before_ib)
