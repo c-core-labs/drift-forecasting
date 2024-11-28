@@ -117,9 +117,11 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
     next_rcm_time = np.datetime64(next_rcm_time)
     forecast_time = rcm_datetime0
-    dirname_wind_waves = str(np.datetime64('today'))
+    # dirname_wind_waves = str(np.datetime64('today'))
+    dirname_wind_waves = np.datetime_as_string(forecast_time, unit='D')
     d_wind_waves = dirname_wind_waves.replace('-', '')
-    dirname_curr_ssh = str(np.datetime64('today'))
+    # dirname_curr_ssh = str(np.datetime64('today'))
+    dirname_curr_ssh = np.datetime_as_string(forecast_time, unit='D')
     d_curr_ssh = dirname_curr_ssh.replace('-', '')
 
     iceberg_times = [forecast_time]
@@ -158,20 +160,20 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
         url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/18/084/' + d_curr_ssh + 'T18Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P084.nc'
         response = requests.head(url)
 
-        if response.status_code == 200 and forecast_time >= np.datetime64(str(np.datetime64('today')) + 'T18:00:00'):
+        if response.status_code == 200 and forecast_time >= np.datetime64(dirname_curr_ssh + 'T18:00:00'):
             hour_utc_str_curr_ssh = '18'
         else:
             url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/12/084/' + d_curr_ssh + 'T12Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P084.nc'
             response = requests.head(url)
 
-            if response.status_code == 200 and forecast_time >= np.datetime64(str(np.datetime64('today')) + 'T12:00:00'):
+            if response.status_code == 200 and forecast_time >= np.datetime64(dirname_curr_ssh + 'T12:00:00'):
                 hour_utc_str_curr_ssh = '12'
             else:
                 url = ('https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/06/084/' + d_curr_ssh +
                        'T06Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P084.nc')
                 response = requests.head(url)
 
-                if response.status_code == 200 and forecast_time >= np.datetime64(str(np.datetime64('today')) + 'T06:00:00'):
+                if response.status_code == 200 and forecast_time >= np.datetime64(dirname_curr_ssh + 'T06:00:00'):
                     hour_utc_str_curr_ssh = '06'
                 else:
                     hour_utc_str_curr_ssh = '00'
@@ -179,7 +181,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
         url = 'https://dd.weather.gc.ca/model_gdwps/25km/12/' + d_wind_waves + 'T12Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT240H.grib2'
         response = requests.head(url)
 
-        if response.status_code == 200 and forecast_time >= np.datetime64(str(np.datetime64('today')) + 'T12:00:00'):
+        if response.status_code == 200 and forecast_time >= np.datetime64(dirname_wind_waves + 'T12:00:00'):
             hour_utc_str_waves = '12'
             hour_utc_str_wind = '12'
         else:
