@@ -10,7 +10,7 @@ import shutil
 import os
 
 def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceberg_length, grounded_status, next_rcm_time):
-    use_temporary_directory = False
+    use_temporary_directory = True
     wgrib_path = './wgrib/'
     bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
     deg_radius = 10
@@ -147,13 +147,13 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
     iceberg_lons = np.empty((len(iceberg_times),))
 
     if grounded_status == 'not grounded':
-        url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/12/240/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + '12_P240.grib2'
-        response = requests.head(url)
-
-        if response.status_code == 200 and forecast_time >= np.datetime64(str(np.datetime64('today')) + 'T12:00:00'):
-            hour_utc_str_wind = '12'
-        else:
-            hour_utc_str_wind = '00'
+        # url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/12/240/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + '12_P240.grib2'
+        # response = requests.head(url)
+        #
+        # if response.status_code == 200 and forecast_time >= np.datetime64(str(np.datetime64('today')) + 'T12:00:00'):
+        #     hour_utc_str_wind = '12'
+        # else:
+        #     hour_utc_str_wind = '00'
 
         url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/18/084/' + d_curr_ssh + 'T18Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P084.nc'
         response = requests.head(url)
@@ -181,8 +181,10 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
         if response.status_code == 200 and forecast_time >= np.datetime64(str(np.datetime64('today')) + 'T12:00:00'):
             hour_utc_str_waves = '12'
+            hour_utc_str_wind = '12'
         else:
             hour_utc_str_waves = '00'
+            hour_utc_str_wind = '00'
 
         forecast_times_wind = []
         forecast_times_waves = []
@@ -194,13 +196,13 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
         time_count_waves = forecast_start_time_waves
         time_count_curr_ssh = forecast_start_time_curr_ssh
 
-        while time_count_wind <= next_rcm_time + np.timedelta64(3, 'h'):
+        while time_count_wind <= next_rcm_time + np.timedelta64(1, 'h'):
             forecast_times_wind.append(time_count_wind)
-            time_count_wind = time_count_wind + np.timedelta64(3, 'h')
+            time_count_wind = time_count_wind + np.timedelta64(1, 'h')
 
-        while time_count_waves <= next_rcm_time + np.timedelta64(3, 'h'):
+        while time_count_waves <= next_rcm_time + np.timedelta64(1, 'h'):
             forecast_times_waves.append(time_count_waves)
-            time_count_waves = time_count_waves + np.timedelta64(3, 'h')
+            time_count_waves = time_count_waves + np.timedelta64(1, 'h')
 
         while time_count_curr_ssh <= next_rcm_time + np.timedelta64(1, 'h'):
             forecast_times_curr_ssh.append(time_count_curr_ssh)
@@ -237,11 +239,16 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                 os.mkdir(directory + '/' + dirname_wind_waves)
 
             for i in range(len(forecast_times_wind)):
-                url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/' + hour_utc_str_wind + '/' + \
-                str(forecast_times_wind_hours[i]).zfill(3) + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + \
-                d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
-                fname = directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
-                        str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
+                # url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/' + hour_utc_str_wind + '/' + \
+                # str(forecast_times_wind_hours[i]).zfill(3) + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + \
+                # d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
+                # fname = directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
+                #         str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
+
+                url = 'https://dd.weather.gc.ca/model_gdwps/25km/' + hour_utc_str_wind + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                      'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2'
+                fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                        'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2'
                 flag = True
 
                 while flag:
@@ -253,23 +260,36 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                     except:
                         print('Error: could not download forecast zonal wind velocity file, retrying...')
 
-                fname = directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
-                        str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
-                run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + \
-                    d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
+                # fname = directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
+                #         str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
+                # run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + \
+                #     d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
+
+                fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                        'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2'
+                run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                    'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.nc')
 
                 if not use_temporary_directory:
                     if not os.path.isdir('./GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves):
                         os.mkdir('./GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves)
 
-                    shutil.move(fname[:-6] + '.nc', './GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' +
-                                d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
+                    # shutil.move(fname[:-6] + '.nc', './GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' +
+                    #             d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
 
-                url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/' + hour_utc_str_wind + '/' + \
-                      str(forecast_times_wind_hours[i]).zfill(3) + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + \
-                      d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
-                fname = directory + '/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
-                        str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
+                    shutil.move(fname[:-6] + '.nc', './GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                                'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.nc')
+
+                # url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/' + hour_utc_str_wind + '/' + \
+                #       str(forecast_times_wind_hours[i]).zfill(3) + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + \
+                #       d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
+                # fname = directory + '/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
+                #         str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
+
+                url = 'https://dd.weather.gc.ca/model_gdwps/25km/' + hour_utc_str_wind + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                      'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2'
+                fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                        'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2'
                 flag = True
 
                 while flag:
@@ -281,17 +301,25 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                     except:
                         print('Error: could not download forecast meridional wind velocity file, retrying...')
 
-                fname = directory + '/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
-                        str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
-                run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + '/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + \
-                    d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
+                # fname = directory + '/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
+                #         str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
+                # run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + '/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + \
+                #     d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
+
+                fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                        'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2'
+                run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                    'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.nc')
 
                 if not use_temporary_directory:
                     if not os.path.isdir('./GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves):
                         os.mkdir('./GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves)
 
-                    shutil.move(fname[:-6] + '.nc', './GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' +
-                                d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
+                    # shutil.move(fname[:-6] + '.nc', './GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' +
+                    #             d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
+
+                    shutil.move(fname[:-6] + '.nc', './GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                                'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.nc')
 
             if not use_temporary_directory:
                 directory = './GDWPS_wave_forecast_grib2_files'
@@ -556,8 +584,10 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
             if not use_temporary_directory:
                 directory = './GDPS_wind_forecast_netcdf_files'
 
-            fname = directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
-                    str(forecast_times_wind_hours[0]).zfill(3) + '.nc'
+            # fname = directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
+            #         str(forecast_times_wind_hours[0]).zfill(3) + '.nc'
+            fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_waves + \
+                    'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_waves_hours[0]).zfill(3) + 'H.nc'
             wind_data = nc.Dataset(fname)
             lat_wind = wind_data.variables['latitude'][:]
             lon_wind = wind_data.variables['longitude'][:]
@@ -629,14 +659,22 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                     after_idx = -1
 
                 # The corresponding NetCDF files
-                u_wind_file_before = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
-                                     str(time_increments_wind[before_idx]).zfill(3) + '.nc'
-                u_wind_file_after = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
-                                    str(time_increments_wind[after_idx]).zfill(3) + '.nc'
-                v_wind_file_before = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
-                                     str(time_increments_wind[before_idx]).zfill(3) + '.nc'
-                v_wind_file_after = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
-                                    str(time_increments_wind[after_idx]).zfill(3) + '.nc'
+                # u_wind_file_before = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
+                #                      str(time_increments_wind[before_idx]).zfill(3) + '.nc'
+                # u_wind_file_after = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
+                #                     str(time_increments_wind[after_idx]).zfill(3) + '.nc'
+                u_wind_file_before = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
+                                 str(time_increments_waves[before_idx]).zfill(3) + 'H.nc'
+                u_wind_file_after = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
+                                str(time_increments_waves[after_idx]).zfill(3) + 'H.nc'
+                # v_wind_file_before = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
+                #                      str(time_increments_wind[before_idx]).zfill(3) + '.nc'
+                # v_wind_file_after = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
+                #                     str(time_increments_wind[after_idx]).zfill(3) + '.nc'
+                v_wind_file_before = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
+                                     str(time_increments_waves[before_idx]).zfill(3) + 'H.nc'
+                v_wind_file_after = date_only_waves + 'T' + hour_utc_str_waves + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
+                                    str(time_increments_waves[after_idx]).zfill(3) + 'H.nc'
 
                 forecast_time_wind_before = forecast_times_wind[before_idx]
                 forecast_time_wind_after = forecast_times_wind[after_idx]
