@@ -10,7 +10,7 @@ import shutil
 import os
 
 def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceberg_length, grounded_status, next_rcm_time):
-    use_temporary_directory = True
+    use_temporary_directory = False
     wgrib_path = './wgrib/'
     bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
     deg_radius = 10
@@ -569,12 +569,12 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                     v_curr_var[:] = v_curr
 
             base_time_wind = forecast_times_wind[0]
-            time_increments_wind = np.arange(forecast_times_wind_hours[0], forecast_times_wind_hours[-1], 3)
+            time_increments_wind = np.arange(forecast_times_wind_hours[0], forecast_times_wind_hours[-1], 1)
             file_times_wind = base_time_wind + time_increments_wind.astype('timedelta64[h]')
             date_only_wind = str(base_time_wind.astype('datetime64[D]')).replace('-', '')
 
             base_time_waves = forecast_times_waves[0]
-            time_increments_waves = np.arange(forecast_times_waves_hours[0], forecast_times_waves_hours[-1], 3)
+            time_increments_waves = np.arange(forecast_times_waves_hours[0], forecast_times_waves_hours[-1], 1)
             file_times_waves = base_time_waves + time_increments_waves.astype('timedelta64[h]')
             date_only_waves = str(base_time_waves.astype('datetime64[D]')).replace('-', '')
 
