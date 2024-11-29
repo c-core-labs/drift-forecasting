@@ -117,8 +117,7 @@ def assess_rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime
 
     # Convert to list for easier inspection, if desired
     iceberg_times = list(iceberg_times)
-    iceberg_times_dt = [float((iceberg_times[i + 1] - iceberg_times[i]) / np.timedelta64(1, 's')) for i in
-                        range(len(iceberg_times) - 1)]
+    iceberg_times_dt = [float((iceberg_times[i + 1] - iceberg_times[i]) / np.timedelta64(1, 's')) for i in range(len(iceberg_times) - 1)]
 
     # Convert to list for easier inspection if desired
     iceberg_times_dt = list(iceberg_times_dt)

@@ -10,7 +10,7 @@ import shutil
 import os
 
 def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceberg_length, grounded_status, next_rcm_time):
-    use_temporary_directory = True
+    use_temporary_directory = False
     wgrib_path = './wgrib/'
     bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
     deg_radius = 10
@@ -139,8 +139,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
 
     # Convert to list for easier inspection, if desired
     iceberg_times = list(iceberg_times)
-    iceberg_times_dt = [float((iceberg_times[i + 1] - iceberg_times[i]) / np.timedelta64(1, 's')) for i in
-                        range(len(iceberg_times) - 1)]
+    iceberg_times_dt = [float((iceberg_times[i + 1] - iceberg_times[i]) / np.timedelta64(1, 's')) for i in range(len(iceberg_times) - 1)]
 
     # Convert to list for easier inspection if desired
     iceberg_times_dt = list(iceberg_times_dt)
