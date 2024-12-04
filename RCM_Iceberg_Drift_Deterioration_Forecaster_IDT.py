@@ -69,6 +69,11 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
     def iceberg_acc(iceberg_lat, iceberg_u, iceberg_v, iceberg_sail, iceberg_draft, iceberg_length, iceberg_mass, dt, am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
                       u_wind, v_wind, u_curr, v_curr, ssh_grad_x, ssh_grad_y, Hs, wave_dir):
         iceberg_keel = iceberg_length * iceberg_draft
+
+        if np.isnan(u_wind) or np.isnan(v_wind):
+            u_wind = 0.
+            v_wind = 0.
+
         wind_dir = 90. - np.rad2deg(np.arctan2(v_wind, u_wind))
 
         if wind_dir < 0:
@@ -79,6 +84,22 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
         if np.isnan(Hs):
             Hs = 0.
+
+        if np.isnan(iceberg_u) or np.isnan(iceberg_v):
+            iceberg_u = 0.
+            iceberg_v = 0.
+
+        if np.isnan(u_curr[0]) or np.isnan(v_curr[0]):
+            u_curr[0] = 0.
+            v_curr[0] = 0.
+
+        if np.isnan(u_curr[1]) or np.isnan(v_curr[1]):
+            u_curr[1] = 0.
+            v_curr[1] = 0.
+
+        if np.isnan(ssh_grad_x) or np.isnan(ssh_grad_y):
+            ssh_grad_x = 0.
+            ssh_grad_y = 0.
 
         Fa_E = 0.5 * rho_air * Ca * iceberg_sail * np.sqrt((u_wind - iceberg_u) ** 2 + (v_wind - iceberg_v) ** 2) * (u_wind - iceberg_u)
         Fw_E = 0.5 * rho_water * Cw * iceberg_keel * np.sqrt((u_curr[0] - iceberg_u) ** 2 + (v_curr[0] - iceberg_v) ** 2) * (u_curr[0] - iceberg_u)
@@ -112,6 +133,21 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
         if np.isnan(wave_pd):
             wave_pd = 6.
+
+        if np.isnan(solar_rad):
+            solar_rad = 0.
+
+        if np.isnan(u_wind) or np.isnan(v_wind):
+            u_wind = 0.
+            v_wind = 0.
+
+        if np.isnan(u_curr) or np.isnan(v_curr):
+            u_curr = 0.
+            v_curr = 0.
+
+        if np.isnan(iceberg_u) or np.isnan(iceberg_v):
+            iceberg_u = 0.
+            iceberg_v = 0.
 
         air_therm_diff_array = np.array([[-100, 7.88e-6], [-50, 13.02e-6], [-30, 15.33e-6], [-20, 16.54e-6], [-10, 17.78e-6], [-5, 18.41e-6],
                                 [0, 19.06e-6], [5, 19.71e-6], [10, 20.36e-6], [20, 21.7e-6], [25, 22.39e-6], [30, 23.07e-6], [50, 25.91e-6],
