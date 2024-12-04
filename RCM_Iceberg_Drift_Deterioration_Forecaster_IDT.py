@@ -101,6 +101,15 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
         water_pot_temps = np.array(water_pot_temps)
         water_sals = np.array(water_sals)
         water_depths = np.array(water_depths)
+        water_pot_temps[np.isnan(water_pot_temps)] = 0.
+        water_sals[np.isnan(water_sals)] = 33.
+
+        if np.isnan(Hs):
+            Hs = 0.
+
+        if np.isnan(wave_pd):
+            wave_pd = 6.
+
         air_therm_diff_array = np.array([[-100, 7.88e-6], [-50, 13.02e-6], [-30, 15.33e-6], [-20, 16.54e-6], [-10, 17.78e-6], [-5, 18.41e-6],
                                 [0, 19.06e-6], [5, 19.71e-6], [10, 20.36e-6], [20, 21.7e-6], [25, 22.39e-6], [30, 23.07e-6], [50, 25.91e-6],
                                 [75, 29.61e-6], [100, 33.49e-6], [125, 37.53e-6], [150, 41.73e-6], [175, 46.07e-6], [200, 50.56e-6],
