@@ -161,6 +161,7 @@ def assess_rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime
         depth_curr = hycom_lat_lon_depth_data['depth_hycom']
         lat_curr = hycom_lat_lon_depth_data['lat_grid_hycom']
         lon_curr = hycom_lat_lon_depth_data['lon_grid_hycom']
+        depth_curr = depth_curr.flatten()
         lat_curr = lat_curr[:, 0]
         lon_curr = lon_curr[0, :]
         lat_curr = lat_curr.flatten()
@@ -208,10 +209,17 @@ def assess_rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime
         time_curr_ssh_hours = (time_curr_ssh - time_curr_ssh_ref) / np.timedelta64(1, 'h')
         iceberg_time_curr_ssh_hours = (iceberg_times - time_curr_ssh_ref) / np.timedelta64(1, 'h')
 
-        loc_depth = np.argwhere(depth_curr <= iceberg_draft)
-        loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
+        loc_depth = np.argwhere(depth_curr <= iceberg_draft).flatten()
+
+        # Append the next index if it exists
+        if loc_depth[-1] + 1 < len(depth_curr):
+            loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
+
+        # Slice depth_curr using the valid indices
         depth_curr_ib = depth_curr[loc_depth]
-        depth_curr_ib = list(depth_curr_ib[:, 0])
+
+        # Convert to a flat list
+        depth_curr_ib = depth_curr_ib.tolist()
         depth_curr_ib_interp = np.arange(0., iceberg_draft, 0.001)
 
         u_curr = u_curr[:, :, loc_depth, :]
