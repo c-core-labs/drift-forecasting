@@ -10,7 +10,7 @@ import shutil
 import os
 
 def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceberg_length, grounded_status, next_rcm_time):
-    use_temporary_directory = True
+    use_temporary_directory = False
     wgrib_path = './wgrib/'
     bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
     deg_radius = 10
@@ -451,6 +451,7 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
                         'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
                 u_curr_data = nc.Dataset(fname)
                 depth_curr = u_curr_data.variables['depth'][:]
+                depth_curr = depth_curr.flatten()
                 u_curr = np.squeeze(u_curr_data.variables['vozocrtx'][:])  # depth x lat x lon
                 u_curr_data.close()
 
@@ -613,13 +614,26 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
             lat_curr = curr_data.variables['latitude'][:]  # lat x lon
             lon_curr = curr_data.variables['longitude'][:]  # lat x lon
             depth_curr = curr_data.variables['depth'][:]
+            depth_curr = depth_curr.flatten()
             curr_data.close()
 
             points_curr = np.array([lat_curr.ravel(), lon_curr.ravel()]).T  # Shape (n_points, 2)
 
-            loc_depth = np.argwhere(depth_curr <= iceberg_draft)
-            loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
-            depth_curr_ib = list(depth_curr[loc_depth])
+            # loc_depth = np.argwhere(depth_curr <= iceberg_draft)
+            # loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
+            # depth_curr_ib = list(depth_curr[loc_depth])
+
+            loc_depth = np.argwhere(depth_curr <= iceberg_draft).flatten()
+
+            # Append the next index if it exists
+            if loc_depth[-1] + 1 < len(depth_curr):
+                loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
+
+            # Slice depth_curr using the valid indices
+            depth_curr_ib = depth_curr[loc_depth]
+
+            # Convert to a flat list
+            depth_curr_ib = depth_curr_ib.tolist()
             depth_curr_ib_interp = np.arange(0., iceberg_draft, 0.001)
 
             fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \

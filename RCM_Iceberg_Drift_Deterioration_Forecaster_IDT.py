@@ -726,6 +726,7 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
                     'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
             u_curr_data = nc.Dataset(fname)
             depth_curr = u_curr_data.variables['depth'][:]
+            depth_curr = depth_curr.flatten()
             u_curr = np.squeeze(u_curr_data.variables['vozocrtx'][:])  # depth x lat x lon
             u_curr_data.close()
 
@@ -1316,12 +1317,21 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             u_curr_data_before = nc.Dataset(fname)
             u_curr_before = np.squeeze(u_curr_data_before.variables['vozocrtx'][:]) # depth x lat x lon
             depth_curr = u_curr_data_before.variables['depth'][:]
+            depth_curr = depth_curr.flatten()
             u_curr_data_before.close()
 
             if ib_draft > 0:
-                loc_depth = np.argwhere(depth_curr <= ib_draft)
-                loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
-                depth_curr_ib = list(depth_curr[loc_depth])
+                loc_depth = np.argwhere(depth_curr <= ib_draft).flatten()
+
+                # Append the next index if it exists
+                if loc_depth[-1] + 1 < len(depth_curr):
+                    loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
+
+                # Slice depth_curr using the valid indices
+                depth_curr_ib = depth_curr[loc_depth]
+
+                # Convert to a flat list
+                depth_curr_ib = depth_curr_ib.tolist()
                 depth_curr_ib_interp = np.arange(0., ib_draft, 0.001)
             else:
                 depth_curr_ib = list(depth_curr)
