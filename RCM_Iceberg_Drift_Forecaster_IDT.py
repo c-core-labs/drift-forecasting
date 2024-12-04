@@ -74,6 +74,9 @@ def rcm_iceberg_drift_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceb
         if np.isnan(wave_dir):
             wave_dir = wind_dir
 
+        if np.isnan(Hs):
+            Hs = 0.
+
         Fa_E = 0.5 * rho_air * Ca * iceberg_sail * np.sqrt((u_wind - iceberg_u) ** 2 + (v_wind - iceberg_v) ** 2) * (u_wind - iceberg_u)
         Fw_E = 0.5 * rho_water * Cw * iceberg_keel * np.sqrt((u_curr[0] - iceberg_u) ** 2 + (v_curr[0] - iceberg_v) ** 2) * (u_curr[0] - iceberg_u)
         f = 2. * omega * np.sin(np.deg2rad(iceberg_lat))
