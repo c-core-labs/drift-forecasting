@@ -158,8 +158,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             water_pressure = gsw.p_from_z(-water_depths[k], iceberg_lat, geo_strf_dyn_height=0, sea_surface_geopotential=0)
             CT = gsw.CT_from_pt(water_sals[k], water_pot_temps[k])
             water_temp = gsw.t_from_CT(water_sals[k], CT, water_pressure)
-            water_therm_diff = water_therm_diff_interpolator((water_temp, water_sals[k]))
-            water_kin_vis = water_kin_vis_interpolator((water_temp, water_sals[k]))
+
+            try:
+                water_therm_diff = water_therm_diff_interpolator((water_temp, water_sals[k]))
+                water_kin_vis = water_kin_vis_interpolator((water_temp, water_sals[k]))
+            except:
+                water_therm_diff = water_therm_diff_interpolator((0., water_sals[k]))
+                water_kin_vis = water_kin_vis_interpolator((0., water_sals[k]))
+
             water_temps.append(water_temp)
             water_therm_diffs.append(water_therm_diff)
             water_kin_viss.append(water_kin_vis)
