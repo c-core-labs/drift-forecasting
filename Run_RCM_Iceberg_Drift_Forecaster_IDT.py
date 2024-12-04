@@ -11,10 +11,10 @@ start_time = time.time()
 iceberg_lat0 = 47.5
 iceberg_lon0 = -46.5
 rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc))  # - np.timedelta64(12, 'h')
-next_rcm_time = rcm_datetime0 + np.timedelta64(6, 'h') + np.timedelta64(24, 'm')
+next_rcm_time = rcm_datetime0 + np.timedelta64(1, 'h') # + np.timedelta64(24, 'm')
 iceberg_length = 50.
 grounded_status = 'not grounded'
-version = 'dynamic - with deterioration' # 'dynamic - no deterioration' or 'dynamic - with deterioration'
+version = 'dynamic - no deterioration' # 'dynamic - no deterioration' or 'dynamic - with deterioration'
 
 if version == 'dynamic - no deterioration':
     (iceberg_lat0, iceberg_lon0, iceberg_lats, iceberg_lons, iceberg_times, iceberg_total_displacement, iceberg_overall_course,

@@ -408,12 +408,6 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             os.mkdir(directory + '/' + dirname_wind_waves)
 
         for i in range(len(forecast_times_wind)):
-            # url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/' + hour_utc_str_wind + '/' + \
-            # str(forecast_times_wind_hours[i]).zfill(3) + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + \
-            # d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
-            # fname = directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
-            #         str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
-
             url = 'https://dd.weather.gc.ca/model_gdwps/25km/' + hour_utc_str_wind + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
                   'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2'
             fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
@@ -422,17 +416,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast zonal wind velocity file ' + fname)
+                    print('Obtaining forecast zonal wind velocity file ' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                        'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast zonal wind velocity file, retrying...')
-
-            # fname = directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
-            #         str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
-            # run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + \
-            #     d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
+                    print('Error: could not download forecast zonal wind velocity file ' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                        'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2, retrying...')
 
             fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
                     'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2'
@@ -443,17 +434,8 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
                 if not os.path.isdir('./GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves):
                     os.mkdir('./GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves)
 
-                # shutil.move(fname[:-6] + '.nc', './GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' +
-                #             d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
-
                 shutil.move(fname[:-6] + '.nc', './GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
                             'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.nc')
-
-            # url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/' + hour_utc_str_wind + '/' + \
-            #       str(forecast_times_wind_hours[i]).zfill(3) + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + \
-            #       d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
-            # fname = directory + '/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
-            #         str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
 
             url = 'https://dd.weather.gc.ca/model_gdwps/25km/' + hour_utc_str_wind + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
                   'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2'
@@ -463,17 +445,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast meridional wind velocity file ' + fname)
+                    print('Obtaining forecast meridional wind velocity file ' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                        'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast meridional wind velocity file, retrying...')
-
-            # fname = directory + '/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
-            #         str(forecast_times_wind_hours[i]).zfill(3) + '.grib2'
-            # run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + '/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' + \
-            #     d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
+                    print('Error: could not download forecast meridional wind velocity file ' + d_wind_waves + 'T' + hour_utc_str_wind + \
+                        'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2, retrying...')
 
             fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
                     'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.grib2'
@@ -483,9 +462,6 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             if not use_temporary_directory:
                 if not os.path.isdir('./GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves):
                     os.mkdir('./GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves)
-
-                # shutil.move(fname[:-6] + '.nc', './GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves + '/CMC_glb_VGRD_TGL_10_latlon.15x.15_' +
-                #             d_wind_waves + hour_utc_str_wind + '_P' + str(forecast_times_wind_hours[i]).zfill(3) + '.nc')
 
                 shutil.move(fname[:-6] + '.nc', './GDPS_wind_forecast_netcdf_files/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_wind + \
                             'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_hours[i]).zfill(3) + 'H.nc')
@@ -503,12 +479,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast air temperature file ' + fname)
+                    print('Obtaining forecast air temperature file CMC_glb_TMP_TGL_2_latlon.15x.15_' + d_airT + hour_utc_str_airT + '_P' + \
+                        str(forecast_times_airT_hours[i]).zfill(3) + '.grib2')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast air temperature file, retrying...')
+                    print('Error: could not download forecast air temperature file CMC_glb_TMP_TGL_2_latlon.15x.15_' + d_airT + hour_utc_str_airT + '_P' + \
+                        str(forecast_times_airT_hours[i]).zfill(3) + '.grib2, retrying...')
 
             fname = directory + '/' + dirname_airT + '/CMC_glb_TMP_TGL_2_latlon.15x.15_' + d_airT + hour_utc_str_airT + '_P' + \
                     str(forecast_times_airT_hours[i]).zfill(3) + '.grib2'
@@ -531,12 +509,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast solar radiation file ' + fname)
+                    print('Obtaining forecast solar radiation file CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + d_airT + hour_utc_str_airT + '_P' + \
+                        str(forecast_times_airT_hours[i]).zfill(3) + '.grib2')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast solar radiation file, retrying...')
+                    print('Error: could not download forecast solar radiation file CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + d_airT + hour_utc_str_airT + '_P' + \
+                        str(forecast_times_airT_hours[i]).zfill(3) + '.grib2, retrying...')
 
             fname = directory + '/' + dirname_airT + '/CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + d_airT + hour_utc_str_airT + '_P' + \
                     str(forecast_times_airT_hours[i]).zfill(3) + '.grib2'
@@ -565,12 +545,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast significant wave height file ' + fname)
+                    print('Obtaining forecast significant wave height file ' + d_wind_waves + 'T' + hour_utc_str_waves + \
+                        'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + str(forecast_times_waves_hours[i]).zfill(3) + 'H.grib2')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast significant wave height file, retrying...')
+                    print('Error: could not download forecast significant wave height file ' + d_wind_waves + 'T' + hour_utc_str_waves + \
+                        'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + str(forecast_times_waves_hours[i]).zfill(3) + 'H.grib2, retrying...')
 
             fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_waves + \
                 'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + str(forecast_times_waves_hours[i]).zfill(3) + 'H.grib2'
@@ -592,12 +574,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast wave direction file ' + fname)
+                    print('Obtaining forecast wave direction file ' + d_wind_waves + 'T' + hour_utc_str_waves + \
+                        'Z_MSC_GDWPS_WVDIR_Sfc_LatLon0.25_PT' + str(forecast_times_waves_hours[i]).zfill(3) + 'H.grib2')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast wave direction file, retrying...')
+                    print('Error: could not download forecast wave direction file ' + d_wind_waves + 'T' + hour_utc_str_waves + \
+                        'Z_MSC_GDWPS_WVDIR_Sfc_LatLon0.25_PT' + str(forecast_times_waves_hours[i]).zfill(3) + 'H.grib2, retrying...')
 
             fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_waves + \
                     'Z_MSC_GDWPS_WVDIR_Sfc_LatLon0.25_PT' + str(forecast_times_waves_hours[i]).zfill(3) + 'H.grib2'
@@ -619,12 +603,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast mean wave period file ' + fname)
+                    print('Obtaining forecast mean wave period file ' + d_wind_waves + 'T' + hour_utc_str_waves + \
+                        'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + str(forecast_times_waves_hours[i]).zfill(3) + 'H.grib2')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast mean wave period file, retrying...')
+                    print('Error: could not download forecast mean wave period file ' + d_wind_waves + 'T' + hour_utc_str_waves + \
+                        'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + str(forecast_times_waves_hours[i]).zfill(3) + 'H.grib2, retrying...')
 
             fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_waves + \
                     'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + str(forecast_times_waves_hours[i]).zfill(3) + 'H.grib2'
@@ -654,12 +640,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast zonal ocean current file ' + fname)
+                    print('Obtaining forecast zonal ocean current file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                        'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast zonal ocean current file, retrying...')
+                    print('Error: could not download forecast zonal ocean current file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                        'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc, retrying...')
 
             url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/' + hour_utc_str_curr_ssh + '/' + \
                   str(forecast_times_curr_ssh_hours[i]).zfill(3) + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
@@ -670,12 +658,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast meridional ocean current file ' + fname)
+                    print('Obtaining forecast meridional ocean current file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                        'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast meridional ocean current file, retrying...')
+                    print('Error: could not download forecast meridional ocean current file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                        'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc, retrying...')
 
             url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/' + hour_utc_str_curr_ssh + '/' + \
                   str(forecast_times_curr_ssh_hours[i]).zfill(3) + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
@@ -686,12 +676,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast ocean salinity file ' + fname)
+                    print('Obtaining forecast ocean salinity file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                        'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast ocean salinity file, retrying...')
+                    print('Error: could not download forecast ocean salinity file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                        'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc, retrying...')
 
             url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/' + hour_utc_str_curr_ssh + '/' + \
                   str(forecast_times_curr_ssh_hours[i]).zfill(3) + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
@@ -702,12 +694,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast ocean potential temperature file ' + fname)
+                    print('Obtaining forecast ocean potential temperature file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                        'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast ocean potential temperature file, retrying...')
+                    print('Error: could not download forecast ocean potential temperature file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                        'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc, retrying...')
 
             url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/2d/' + hour_utc_str_curr_ssh + '/' + \
                   str(forecast_times_curr_ssh_hours[i]).zfill(3) + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
@@ -718,12 +712,14 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
             while flag:
                 try:
-                    print('Obtaining forecast sea surface height file ' + fname)
+                    print('Obtaining forecast sea surface height file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                        'Z_MSC_RIOPS_SOSSHEIG_SFC_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc')
                     r = requests.get(url, allow_redirects=True, timeout=5.0)
                     open(fname, 'wb').write(r.content)
                     flag = False
                 except:
-                    print('Error: could not download forecast sea surface height file, retrying...')
+                    print('Error: could not download forecast sea surface height file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                        'Z_MSC_RIOPS_SOSSHEIG_SFC_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc, retrying...')
 
         for i in range(len(forecast_times_curr_ssh)):
             fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
@@ -807,7 +803,8 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
                     'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
 
-            print('Writing forecast sea surface height gradient file ' + fname)
+            print('Writing forecast sea surface height gradient file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc')
 
             with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
                 ncfile.createDimension('x_gradient_latitude', len(curr_ssh_lat[:, 0]))
@@ -832,7 +829,8 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
                     'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
 
-            print('Shrinking forecast zonal ocean current file ' + fname)
+            print('Shrinking forecast zonal ocean current file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc')
 
             with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
                 ncfile.createDimension('latitude', len(curr_ssh_lat[:, 0]))
@@ -852,7 +850,8 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
                     'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
 
-            print('Shrinking forecast meridional ocean current file ' + fname)
+            print('Shrinking forecast meridional ocean current file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc')
 
             with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
                 ncfile.createDimension('latitude', len(curr_ssh_lat[:, 0]))
@@ -872,7 +871,8 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
                     'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
 
-            print('Shrinking forecast ocean salinity file ' + fname)
+            print('Shrinking forecast ocean salinity file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc')
 
             with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
                 ncfile.createDimension('latitude', len(curr_ssh_lat[:, 0]))
@@ -892,7 +892,8 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             fname = directory + '/' + dirname_curr_ssh + '/' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
                     'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc'
 
-            print('Shrinking forecast ocean potential temperature file ' + fname)
+            print('Shrinking forecast ocean potential temperature file ' + d_curr_ssh + 'T' + hour_utc_str_curr_ssh + \
+                'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + str(forecast_times_curr_ssh_hours[i]).zfill(3) + '.nc')
 
             with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
                 ncfile.createDimension('latitude', len(curr_ssh_lat[:, 0]))
@@ -932,8 +933,6 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
         if not use_temporary_directory:
             directory = './GDPS_wind_forecast_netcdf_files'
 
-        # fname = directory + '/' + dirname_wind_waves + '/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + hour_utc_str_wind + '_P' + \
-        #         str(forecast_times_wind_hours[0]).zfill(3) + '.nc'
         fname = directory + '/' + dirname_wind_waves + '/' + d_wind_waves + 'T' + hour_utc_str_waves + \
                 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_waves_hours[0]).zfill(3) + 'H.nc'
         wind_data = nc.Dataset(fname)
@@ -1015,19 +1014,10 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             except:
                 after_idx = -1
 
-            # The corresponding NetCDF files
-            # u_wind_file_before = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
-            #                      str(time_increments_wind[before_idx]).zfill(3) + '.nc'
-            # u_wind_file_after = 'CMC_glb_UGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
-            #                     str(time_increments_wind[after_idx]).zfill(3) + '.nc'
             u_wind_file_before = date_only_wind + 'T' + hour_utc_str_wind + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
                              str(time_increments_wind[before_idx]).zfill(3) + 'H.nc'
             u_wind_file_after = date_only_wind + 'T' + hour_utc_str_wind + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
                             str(time_increments_wind[after_idx]).zfill(3) + 'H.nc'
-            # v_wind_file_before = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
-            #                      str(time_increments_wind[before_idx]).zfill(3) + '.nc'
-            # v_wind_file_after = 'CMC_glb_VGRD_TGL_10_latlon.15x.15_' + date_only_wind + hour_utc_str_wind + '_P' + \
-            #                     str(time_increments_wind[after_idx]).zfill(3) + '.nc'
             v_wind_file_before = date_only_wind + 'T' + hour_utc_str_wind + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
                                  str(time_increments_wind[before_idx]).zfill(3) + 'H.nc'
             v_wind_file_after = date_only_wind + 'T' + hour_utc_str_wind + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
@@ -1344,6 +1334,8 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
                 # Convert to a flat list
                 depth_curr_ib = depth_curr_ib.tolist()
+                print(depth_curr_ib)
+                print(loc_depth)
                 depth_curr_ib_interp = np.arange(0., ib_draft, 0.001)
             else:
                 depth_curr_ib = list(depth_curr)
