@@ -70,7 +70,7 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
                       u_wind, v_wind, u_curr, v_curr, ssh_grad_x, ssh_grad_y, Hs, wave_dir):
         iceberg_keel = iceberg_length * iceberg_draft
 
-        if np.isnan(u_wind) or np.isnan(v_wind):
+        if np.isnan(u_wind) or np.isnan(v_wind) or np.isinf(u_wind) or np.isinf(v_wind) or not np.isreal(u_wind) or not np.isreal(v_wind):
             u_wind = 0.
             v_wind = 0.
 
@@ -79,25 +79,25 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
         if wind_dir < 0:
             wind_dir = wind_dir + 360.
 
-        if np.isnan(wave_dir):
+        if np.isnan(wave_dir) or np.isinf(wave_dir) or not np.isreal(wave_dir):
             wave_dir = wind_dir
 
-        if np.isnan(Hs):
+        if np.isnan(Hs) or np.isinf(Hs) or not np.isreal(Hs):
             Hs = 0.
 
-        if np.isnan(iceberg_u) or np.isnan(iceberg_v):
+        if np.isnan(iceberg_u) or np.isnan(iceberg_v) or np.isinf(iceberg_u) or np.isinf(iceberg_v) or not np.isreal(iceberg_u) or not np.isreal(iceberg_v):
             iceberg_u = 0.
             iceberg_v = 0.
 
-        if np.isnan(u_curr[0]) or np.isnan(v_curr[0]):
+        if np.isnan(u_curr[0]) or np.isnan(v_curr[0]) or np.isinf(u_curr[0]) or np.isinf(v_curr[0]) or not np.isreal(u_curr[0]) or not np.isreal(v_curr[0]):
             u_curr[0] = 0.
             v_curr[0] = 0.
 
-        if np.isnan(u_curr[1]) or np.isnan(v_curr[1]):
+        if np.isnan(u_curr[1]) or np.isnan(v_curr[1]) or np.isinf(u_curr[1]) or np.isinf(v_curr[1]) or not np.isreal(u_curr[1]) or not np.isreal(v_curr[1]):
             u_curr[1] = 0.
             v_curr[1] = 0.
 
-        if np.isnan(ssh_grad_x) or np.isnan(ssh_grad_y):
+        if np.isnan(ssh_grad_x) or np.isnan(ssh_grad_y) or np.isinf(ssh_grad_x) or np.isinf(ssh_grad_y) or not np.isreal(ssh_grad_x) or not np.isreal(ssh_grad_y):
             ssh_grad_x = 0.
             ssh_grad_y = 0.
 
@@ -127,25 +127,29 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
         water_depths = np.array(water_depths)
         water_pot_temps[np.isnan(water_pot_temps)] = 0.
         water_sals[np.isnan(water_sals)] = 33.
+        water_pot_temps[np.isinf(water_pot_temps)] = 0.
+        water_sals[np.isinf(water_sals)] = 33.
+        water_pot_temps[not np.isreal(water_pot_temps)] = 0.
+        water_sals[not np.isreal(water_sals)] = 33.
 
-        if np.isnan(Hs):
+        if np.isnan(Hs) or np.isinf(Hs) or not np.isreal(Hs):
             Hs = 0.
 
-        if np.isnan(wave_pd):
+        if np.isnan(wave_pd) or np.isinf(wave_pd) or not np.isreal(wave_pd):
             wave_pd = 6.
 
-        if np.isnan(solar_rad):
+        if np.isnan(solar_rad) or np.isinf(solar_rad) or not np.isreal(solar_rad):
             solar_rad = 0.
 
-        if np.isnan(u_wind) or np.isnan(v_wind):
+        if np.isnan(u_wind) or np.isnan(v_wind) or np.isinf(u_wind) or np.isinf(v_wind) or not np.isreal(u_wind) or not np.isreal(v_wind):
             u_wind = 0.
             v_wind = 0.
 
-        if np.isnan(u_curr) or np.isnan(v_curr):
+        if np.isnan(u_curr) or np.isnan(v_curr) or np.isinf(u_curr) or np.isinf(v_curr) or not np.isreal(u_curr) or not np.isreal(v_curr):
             u_curr = 0.
             v_curr = 0.
 
-        if np.isnan(iceberg_u) or np.isnan(iceberg_v):
+        if np.isnan(iceberg_u) or np.isnan(iceberg_v) or np.isinf(iceberg_u) or np.isinf(iceberg_v) or not np.isreal(iceberg_u) or not np.isreal(iceberg_v):
             iceberg_u = 0.
             iceberg_v = 0.
 
