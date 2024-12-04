@@ -1324,7 +1324,7 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
                 depth_curr_ib = list(depth_curr[loc_depth])
                 depth_curr_ib_interp = np.arange(0., ib_draft, 0.001)
             else:
-                depth_curr_ib = depth_curr
+                depth_curr_ib = list(depth_curr)
                 depth_curr_ib_interp = np.arange(0., depth_curr[-2], 0.001)
 
             fname = directory + '/' + dirname_curr_ssh + '/' + u_curr_file_after
