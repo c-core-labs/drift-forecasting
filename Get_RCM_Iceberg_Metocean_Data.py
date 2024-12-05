@@ -4,13 +4,11 @@ import numpy as np
 import netCDF4 as nc
 import requests
 import os
-import datetime
 import warnings
 warnings.simplefilter(action='ignore')
 
 rootpath_to_data = './RCM_Iceberg_Metocean_Data/'
 wgrib_path = './wgrib/'
-current_time = np.datetime64(datetime.datetime.now(datetime.timezone.utc))
 
 def dist_bearing(Re, lat1, lat2, lon1, lon2):
     def arccot(x):
@@ -56,7 +54,7 @@ d_today = dirname_today.replace('-', '')
 url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/12/240/CMC_glb_TMP_TGL_2_latlon.15x.15_' + d_today + '12_P240.grib2'
 response = requests.head(url)
 
-if response.status_code == 200 and current_time >= np.datetime64(dirname_today + 'T12:00:00'):
+if response.status_code == 200:
     hour_utc_str_airT_sw_rad = '12'
 else:
     hour_utc_str_airT_sw_rad = '00'
@@ -64,19 +62,19 @@ else:
 url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/18/084/' + d_today + 'T18Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P084.nc'
 response = requests.head(url)
 
-if response.status_code == 200 and current_time >= np.datetime64(dirname_today + 'T18:00:00'):
+if response.status_code == 200:
     hour_utc_str_ocean = '18'
 else:
     url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/12/084/' + d_today + 'T12Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P084.nc'
     response = requests.head(url)
 
-    if response.status_code == 200 and current_time >= np.datetime64(dirname_today + 'T12:00:00'):
+    if response.status_code == 200:
         hour_utc_str_ocean = '12'
     else:
         url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/06/084/' + d_today + 'T06Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P084.nc'
         response = requests.head(url)
 
-        if response.status_code == 200 and current_time >= np.datetime64(dirname_today + 'T06:00:00'):
+        if response.status_code == 200:
             hour_utc_str_ocean = '06'
         else:
             hour_utc_str_ocean = '00'
@@ -84,7 +82,7 @@ else:
 url = 'https://dd.weather.gc.ca/model_gdwps/25km/12/' + d_today + 'T12Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT240H.grib2'
 response = requests.head(url)
 
-if response.status_code == 200 and current_time >= np.datetime64(dirname_today + 'T12:00:00'):
+if response.status_code == 200:
     hour_utc_str_wind_waves = '12'
 else:
     hour_utc_str_wind_waves = '00'
