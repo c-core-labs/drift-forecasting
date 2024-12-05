@@ -343,14 +343,6 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
     iceberg_sails = np.empty((len(iceberg_times),))
     iceberg_masses = np.empty((len(iceberg_times),))
 
-    # url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/12/240/CMC_glb_UGRD_TGL_10_latlon.15x.15_' + d_wind_waves + '12_P240.grib2'
-    # response = requests.head(url)
-    #
-    # if response.status_code == 200 and forecast_time >= np.datetime64(str(np.datetime64('today')) + 'T12:00:00'):
-    #     hour_utc_str_wind = '12'
-    # else:
-    #     hour_utc_str_wind = '00'
-
     url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/12/240/CMC_glb_TMP_TGL_2_latlon.15x.15_' + d_wind_waves + '12_P240.grib2'
     response = requests.head(url)
 
