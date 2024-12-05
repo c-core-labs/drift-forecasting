@@ -91,6 +91,9 @@ wind_waves_ocean_hours = np.arange(0, 85, 1)
 airT_sw_rad_hours = np.arange(0, 85, 3)
 Re = 6371e3
 
+if not os.path.isdir(rootpath_to_data):
+    os.mkdir(rootpath_to_data)
+
 if not os.path.isdir(rootpath_to_data + 'GDPS_airT_sw_rad_forecast_files/'):
     os.mkdir(rootpath_to_data + 'GDPS_airT_sw_rad_forecast_files/')
 
