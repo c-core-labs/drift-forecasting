@@ -136,8 +136,7 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
         if np.any(np.isnan(Hs)) or np.any(np.isinf(Hs)) or np.any(~np.isreal(Hs)):
             Hs = 0.001
 
-        if (np.any(np.isnan(iceberg_u)) or np.any(np.isnan(iceberg_v)) or np.any(np.isinf(iceberg_u)) or np.any(
-                np.isinf(iceberg_v))
+        if (np.any(np.isnan(iceberg_u)) or np.any(np.isnan(iceberg_v)) or np.any(np.isinf(iceberg_u)) or np.any(np.isinf(iceberg_v))
                 or np.any(~np.isreal(iceberg_u)) or np.any(~np.isreal(iceberg_v))):
             iceberg_u = 0.
             iceberg_v = 0.
@@ -148,7 +147,7 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
             v_curr = 0.
 
         if np.any(np.isnan(wave_pd)) or np.any(np.isinf(wave_pd)) or np.any(~np.isreal(wave_pd)):
-            wave_pd = 6.
+            wave_pd = 16.
 
         if np.any(np.isnan(solar_rad)) or np.any(np.isinf(solar_rad)) or np.any(~np.isreal(solar_rad)):
             solar_rad = 0.
