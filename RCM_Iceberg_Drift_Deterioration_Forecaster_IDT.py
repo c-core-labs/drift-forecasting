@@ -11,7 +11,7 @@ import shutil
 import os
 
 def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_datetime0, iceberg_length, grounded_status, next_rcm_time):
-    use_temporary_directory = True
+    use_temporary_directory = False
     wgrib_path = './wgrib/'
     bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
     deg_radius = 10
@@ -343,7 +343,7 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
     iceberg_sails = np.empty((len(iceberg_times),))
     iceberg_masses = np.empty((len(iceberg_times),))
 
-    url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/12/240/CMC_glb_TMP_TGL_2_latlon.15x.15_' + d_wind_waves + '12_P240.grib2'
+    url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/12/240/CMC_glb_TMP_TGL_2_latlon.15x.15_' + d_airT + '12_P240.grib2'
     response = requests.head(url)
 
     if response.status_code == 200 and forecast_time >= np.datetime64(dirname_airT + 'T12:00:00'):
@@ -363,8 +363,7 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
         if response.status_code == 200 and forecast_time >= np.datetime64(dirname_curr_ssh + 'T12:00:00'):
             hour_utc_str_curr_ssh = '12'
         else:
-            url = ('https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/06/084/' + d_curr_ssh +
-                   'T06Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P084.nc')
+            url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/06/084/' + d_curr_ssh + 'T06Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P084.nc'
             response = requests.head(url)
 
             if response.status_code == 200 and forecast_time >= np.datetime64(dirname_curr_ssh + 'T06:00:00'):
