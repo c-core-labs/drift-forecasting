@@ -9,6 +9,7 @@ warnings.simplefilter(action='ignore')
 
 rootpath_to_data = './RCM_Iceberg_Metocean_Data/'
 wgrib_path = './wgrib/'
+forecast_hours = 84
 
 def dist_bearing(Re, lat1, lat2, lon1, lon2):
     def arccot(x):
@@ -87,8 +88,8 @@ if response.status_code == 200:
 else:
     hour_utc_str_wind_waves = '00'
 
-wind_waves_ocean_hours = np.arange(0, 85, 1)
-airT_sw_rad_hours = np.arange(0, 85, 3)
+wind_waves_ocean_hours = np.arange(0, forecast_hours + 1, 1)
+airT_sw_rad_hours = np.arange(0, forecast_hours + 1, 3)
 Re = 6371e3
 
 if not os.path.isdir(rootpath_to_data):
