@@ -530,7 +530,7 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
             water_sals = water_sals[:, :, loc_depth, :]
         else:
             depth_curr_ib = list(depth_curr)
-            depth_curr_ib_interp = np.arange(0., depth_curr[-2], 0.001)
+            depth_curr_ib_interp = np.arange(0., depth_curr[-1], 0.001)
 
         u_curr_depth_list = []
         u_curr_depth_list2 = []
