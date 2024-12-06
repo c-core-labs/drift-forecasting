@@ -10,44 +10,6 @@ rootpath_to_data = './RCM_Iceberg_Metocean_Data/'
 wgrib_path = './wgrib/'
 forecast_hours = 84
 
-def dist_bearing(Re, lat1, lat2, lon1, lon2):
-    def arccot(x):
-        return np.pi / 2 - np.arctan(x)
-
-    lat1 = np.radians(lat1)
-    lat2 = np.radians(lat2)
-    lon1 = np.radians(lon1)
-    lon2 = np.radians(lon2)
-    L = Re * np.arccos(np.sin(lat1) * np.sin(lat2) + np.cos(lat1) * np.cos(lat2) * np.cos(lon2 - lon1))
-    Az = np.degrees(arccot((np.cos(lat1) * np.tan(lat2) - np.sin(lat1) * np.cos(lon2 - lon1)) / np.sin(lon2 - lon1)))
-
-    if Az < 0:
-        Az += 360
-    elif Az >= 360:
-        Az -= 360
-
-    if lon1 == lon2:
-        if lat1 > lat2:
-            Az = 180.
-        elif lat1 < lat2:
-            Az = 0.
-        elif lat1 == lat2:
-            L = 0.
-            Az = 0.
-
-    return L, Az
-
-def dist_course(Re, lat1, lon1, dist, course):
-    lat1 = np.radians(lat1)
-    lon1 = np.radians(lon1)
-    course = np.radians(course)
-    lat2 = np.arcsin(np.sin(lat1) * np.cos(dist / Re) + np.cos(lat1) * np.sin(dist / Re) * np.cos(course))
-    lat2 = np.degrees(lat2)
-    lat2_rad = np.radians(lat2)
-    lon2 = lon1 + np.arctan2(np.sin(course) * np.sin(dist / Re) * np.cos(lat1), np.cos(dist / Re) - np.sin(lat1) * np.sin(lat2_rad))
-    lon2 = np.degrees(lon2)
-    return lat2, lon2
-
 dirname_today = str(np.datetime64('today'))
 d_today = dirname_today.replace('-', '')
 
