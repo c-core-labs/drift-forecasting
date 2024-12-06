@@ -1,7 +1,6 @@
 
 from subprocess import run
 import numpy as np
-import netCDF4 as nc
 import requests
 import os
 import warnings
@@ -372,71 +371,5 @@ for i in range(len(airT_sw_rad_hours)):
             str(airT_sw_rad_hours[i]).zfill(3) + '.grib2'
     run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + dirname_today + '/CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + \
         d_today + hour_utc_str_airT_sw_rad + '_P' + str(airT_sw_rad_hours[i]).zfill(3) + '.nc')
-    os.remove(fname)
-
-for i in range(len(wind_waves_ocean_hours)):
-    directory = rootpath_to_data + 'RIOPS_ocean_forecast_files/'
-    fname = (directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_ocean +
-             'Z_MSC_RIOPS_SOSSHEIG_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc')
-    ssh_data = nc.Dataset(fname)
-    lat_ocean = ssh_data.variables['latitude'][:]  # lat x lon
-    lon_ocean = ssh_data.variables['longitude'][:]  # lat x lon
-    ssh = np.squeeze(ssh_data.variables['sossheig'][:])  # lat x lon
-    ssh_data.close()
-
-    ssh_grad_x = np.empty((len(lat_ocean[:, 0]), len(lon_ocean[0, :]) - 1))
-    ssh_grad_y = np.empty((len(lat_ocean[:, 0]) - 1, len(lon_ocean[0, :])))
-
-    ssh_grad_x_lat = np.empty((len(lat_ocean[:, 0]), len(lon_ocean[0, :]) - 1))
-    ssh_grad_y_lat = np.empty((len(lat_ocean[:, 0]) - 1, len(lon_ocean[0, :])))
-
-    ssh_grad_x_lon = np.empty((len(lat_ocean[:, 0]), len(lon_ocean[0, :]) - 1))
-    ssh_grad_y_lon = np.empty((len(lat_ocean[:, 0]) - 1, len(lon_ocean[0, :])))
-
-    fname = (directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_ocean +
-             'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc')
-
-    print('Computing forecast sea surface height gradients for ' + d_today + 'T' + hour_utc_str_ocean + \
-          'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc')
-
-    for k in range(len(lat_ocean[:, 0])):
-        for n in range(len(lon_ocean[0, :]) - 1):
-            grid_pt_dist, grid_pt_bearing = dist_bearing(Re, lat_ocean[k, n], lat_ocean[k, n + 1], lon_ocean[k, n], lon_ocean[k, n + 1])
-            ssh_grad_x_lat[k, n], ssh_grad_x_lon[k, n] = dist_course(Re, lat_ocean[k, n], lon_ocean[k, n], grid_pt_dist / 2., grid_pt_bearing)
-            ssh_grad = (ssh[k, n + 1] - ssh[k, n]) / grid_pt_dist
-            ssh_grad_x[k, n] = ssh_grad * np.sin(np.deg2rad(grid_pt_bearing))
-
-    for k in range(len(lat_ocean[:, 0]) - 1):
-        for n in range(len(lon_ocean[0, :])):
-            grid_pt_dist, grid_pt_bearing = dist_bearing(Re, lat_ocean[k, n], lat_ocean[k + 1, n], lon_ocean[k, n], lon_ocean[k + 1, n])
-            ssh_grad_y_lat[k, n], ssh_grad_y_lon[k, n] = dist_course(Re, lat_ocean[k, n], lon_ocean[k, n], grid_pt_dist / 2., grid_pt_bearing)
-            ssh_grad = (ssh[k + 1, n] - ssh[k, n]) / grid_pt_dist
-            ssh_grad_y[k, n] = -ssh_grad * np.cos(np.deg2rad(grid_pt_bearing))
-
-    print('Writing forecast sea surface height gradient file ' + d_today + 'T' + hour_utc_str_ocean + \
-          'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc')
-
-    with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
-        ncfile.createDimension('x_gradient_latitude', len(lat_ocean[:, 0]))
-        ncfile.createDimension('x_gradient_longitude', len(lon_ocean[0, :]) - 1)
-        ncfile.createDimension('y_gradient_latitude', len(lat_ocean[:, 0]) - 1)
-        ncfile.createDimension('y_gradient_longitude', len(lon_ocean[0, :]))
-
-        x_gradient_latitude_var = ncfile.createVariable('ssh_grad_x_lat', 'f8',('x_gradient_latitude', 'x_gradient_longitude',))
-        x_gradient_longitude_var = ncfile.createVariable('ssh_grad_x_lon', 'f8',('x_gradient_latitude', 'x_gradient_longitude',))
-        y_gradient_latitude_var = ncfile.createVariable('ssh_grad_y_lat', 'f8',('y_gradient_latitude', 'y_gradient_longitude',))
-        y_gradient_longitude_var = ncfile.createVariable('ssh_grad_y_lon', 'f8',('y_gradient_latitude', 'y_gradient_longitude',))
-        ssh_grad_x_var = ncfile.createVariable('ssh_grad_x', 'f4', ('x_gradient_latitude', 'x_gradient_longitude',))
-        ssh_grad_y_var = ncfile.createVariable('ssh_grad_y', 'f4', ('y_gradient_latitude', 'y_gradient_longitude',))
-
-        x_gradient_latitude_var[:] = ssh_grad_x_lat
-        x_gradient_longitude_var[:] = ssh_grad_x_lon
-        y_gradient_latitude_var[:] = ssh_grad_y_lat
-        y_gradient_longitude_var[:] = ssh_grad_y_lon
-        ssh_grad_x_var[:] = ssh_grad_x
-        ssh_grad_y_var[:] = ssh_grad_y
-
-    fname = (directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_ocean +
-             'Z_MSC_RIOPS_SOSSHEIG_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc')
     os.remove(fname)
 

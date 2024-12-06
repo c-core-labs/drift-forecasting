@@ -1369,8 +1369,6 @@ def rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0, rcm_d
 
                 # Convert to a flat list
                 depth_curr_ib = depth_curr_ib.tolist()
-                print(depth_curr_ib)
-                print(loc_depth)
                 depth_curr_ib_interp = np.arange(0., ib_draft, 0.001)
             else:
                 depth_curr_ib = list(depth_curr)
