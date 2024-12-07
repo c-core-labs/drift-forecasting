@@ -6,7 +6,7 @@ import os
 import warnings
 warnings.simplefilter(action='ignore')
 
-rootpath_to_data = './RCM_Iceberg_Metocean_Data/'
+rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
 wgrib_path = './wgrib/'
 forecast_hours = 84
 
@@ -53,29 +53,29 @@ wind_waves_ocean_hours = np.arange(0, forecast_hours + 1, 1)
 airT_sw_rad_hours = np.arange(0, forecast_hours + 1, 3)
 Re = 6371e3
 
-if not os.path.isdir(rootpath_to_data):
-    os.mkdir(rootpath_to_data)
+if not os.path.isdir(rootpath_to_metdata):
+    os.mkdir(rootpath_to_metdata)
 
-if not os.path.isdir(rootpath_to_data + 'GDPS_airT_sw_rad_forecast_files/'):
-    os.mkdir(rootpath_to_data + 'GDPS_airT_sw_rad_forecast_files/')
+if not os.path.isdir(rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/'):
+    os.mkdir(rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/')
 
-if not os.path.isdir(rootpath_to_data + 'GDWPS_wind_wave_forecast_files/'):
-    os.mkdir(rootpath_to_data + 'GDWPS_wind_wave_forecast_files/')
+if not os.path.isdir(rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/'):
+    os.mkdir(rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/')
 
-if not os.path.isdir(rootpath_to_data + 'RIOPS_ocean_forecast_files/'):
-    os.mkdir(rootpath_to_data + 'RIOPS_ocean_forecast_files/')
+if not os.path.isdir(rootpath_to_metdata + 'RIOPS_ocean_forecast_files/'):
+    os.mkdir(rootpath_to_metdata + 'RIOPS_ocean_forecast_files/')
 
-if not os.path.isdir(rootpath_to_data + 'GDPS_airT_sw_rad_forecast_files/' + dirname_today):
-    os.mkdir(rootpath_to_data + 'GDPS_airT_sw_rad_forecast_files/' + dirname_today)
+if not os.path.isdir(rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_today):
+    os.mkdir(rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_today)
 
-if not os.path.isdir(rootpath_to_data + 'GDWPS_wind_wave_forecast_files/' + dirname_today):
-    os.mkdir(rootpath_to_data + 'GDWPS_wind_wave_forecast_files/' + dirname_today)
+if not os.path.isdir(rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_today):
+    os.mkdir(rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_today)
 
-if not os.path.isdir(rootpath_to_data + 'RIOPS_ocean_forecast_files/' + dirname_today):
-    os.mkdir(rootpath_to_data + 'RIOPS_ocean_forecast_files/' + dirname_today)
+if not os.path.isdir(rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_today):
+    os.mkdir(rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_today)
 
 for i in range(len(wind_waves_ocean_hours)):
-    directory = rootpath_to_data + 'GDWPS_wind_wave_forecast_files/'
+    directory = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/'
 
     url = 'https://dd.weather.gc.ca/model_gdwps/25km/' + hour_utc_str_wind_waves + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
         'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2'
@@ -192,7 +192,7 @@ for i in range(len(wind_waves_ocean_hours)):
         'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.nc')
     os.remove(fname)
 
-    directory = rootpath_to_data + 'RIOPS_ocean_forecast_files/'
+    directory = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/'
 
     url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/' + hour_utc_str_ocean + '/' + \
         str(wind_waves_ocean_hours[i]).zfill(3) + '/' + d_today + 'T' + hour_utc_str_ocean + \
@@ -285,7 +285,7 @@ for i in range(len(wind_waves_ocean_hours)):
                   'Z_MSC_RIOPS_SOSSHEIG_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc, retrying...')
 
 for i in range(len(airT_sw_rad_hours)):
-    directory = rootpath_to_data + 'GDPS_airT_sw_rad_forecast_files/'
+    directory = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/'
 
     url = 'https://dd.meteo.gc.ca/model_gem_global/15km/grib2/lat_lon/' + hour_utc_str_airT_sw_rad + '/' + \
         str(airT_sw_rad_hours[i]).zfill(3) + '/CMC_glb_TMP_TGL_2_latlon.15x.15_' + \

@@ -8,8 +8,9 @@ import gsw
 
 # bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
 
-def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metdata, iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0,
-                                               iceberg_grounded_statuses0, next_rcm_time, hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean):
+def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metdata, iceberg_lats0, iceberg_lons0, iceberg_lengths0,
+                                               iceberg_grounded_statuses0, rcm_datetime0, next_rcm_time,
+                                               hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean):
     deg_radius = 30
     g = 9.80665
     rho_water = 1023.6
