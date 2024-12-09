@@ -6,6 +6,9 @@ import os
 import warnings
 warnings.simplefilter(action='ignore')
 
+# 43.0 GB of daily metocean forecast data if downloaded only once daily.
+# 2 hours and 11 minutes to download 84 hours (3.5 days ) of forecast metocean data.
+
 rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
 wgrib_path = './wgrib/'
 forecast_hours = 84
@@ -95,6 +98,8 @@ for i in range(len(airT_sw_rad_hours)):
 
     fname = directory + dirname_today + '/CMC_glb_TMP_TGL_2_latlon.15x.15_' + d_today + hour_utc_str_airT_sw_rad + '_P' + \
             str(airT_sw_rad_hours[i]).zfill(3) + '.grib2'
+    print('Converting forecast air temperature file CMC_glb_TMP_TGL_2_latlon.15x.15_' + d_today + hour_utc_str_airT_sw_rad + '_P' + \
+        str(airT_sw_rad_hours[i]).zfill(3) + '.grib2 to NetCDF')
     run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + dirname_today + '/CMC_glb_TMP_TGL_2_latlon.15x.15_' + \
         d_today + hour_utc_str_airT_sw_rad + '_P' + str(airT_sw_rad_hours[i]).zfill(3) + '.nc')
     os.remove(fname)
@@ -119,6 +124,8 @@ for i in range(len(airT_sw_rad_hours)):
 
     fname = directory + dirname_today + '/CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + d_today + hour_utc_str_airT_sw_rad + '_P' + \
             str(airT_sw_rad_hours[i]).zfill(3) + '.grib2'
+    print('Converting forecast solar radiation file CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + d_today + hour_utc_str_airT_sw_rad + '_P' + \
+        str(airT_sw_rad_hours[i]).zfill(3) + '.grib2 to NetCDF')
     run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + dirname_today + '/CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + \
         d_today + hour_utc_str_airT_sw_rad + '_P' + str(airT_sw_rad_hours[i]).zfill(3) + '.nc')
     os.remove(fname)
@@ -145,6 +152,8 @@ for i in range(len(wind_waves_ocean_hours)):
 
     fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
         'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2'
+    print('Converting forecast zonal wind velocity file ' + d_today + 'T' + hour_utc_str_wind_waves + \
+          'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2 to NetCDF')
     run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
         'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.nc')
     os.remove(fname)
@@ -168,6 +177,8 @@ for i in range(len(wind_waves_ocean_hours)):
 
     fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
             'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2'
+    print('Converting forecast meridional wind velocity file ' + d_today + 'T' + hour_utc_str_wind_waves + \
+          'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2 to NetCDF')
     run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
         'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.nc')
     os.remove(fname)
@@ -191,6 +202,8 @@ for i in range(len(wind_waves_ocean_hours)):
 
     fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
             'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2'
+    print('Converting forecast significant wave height file ' + d_today + 'T' + hour_utc_str_wind_waves + \
+          'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2 to NetCDF')
     run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
         'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.nc')
     os.remove(fname)
@@ -214,6 +227,8 @@ for i in range(len(wind_waves_ocean_hours)):
 
     fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
             'Z_MSC_GDWPS_WVDIR_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2'
+    print('Converting forecast wave direction file ' + d_today + 'T' + hour_utc_str_wind_waves + \
+          'Z_MSC_GDWPS_WVDIR_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2 to NetCDF')
     run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
         'Z_MSC_GDWPS_WVDIR_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.nc')
     os.remove(fname)
@@ -237,6 +252,8 @@ for i in range(len(wind_waves_ocean_hours)):
 
     fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
         'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2'
+    print('Converting forecast mean wave period file ' + d_today + 'T' + hour_utc_str_wind_waves + \
+          'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2 to NetCDF')
     run(wgrib_path + 'wgrib2.exe ' + fname + ' -netcdf ' + directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
         'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.nc')
     os.remove(fname)
