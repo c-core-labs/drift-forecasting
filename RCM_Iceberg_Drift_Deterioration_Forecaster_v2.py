@@ -7,7 +7,7 @@ import netCDF4 as nc
 import gsw
 
 def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metdata, iceberg_lats0, iceberg_lons0, iceberg_lengths0,
-                                               iceberg_grounded_statuses0, rcm_datetime0, next_rcm_time,
+                                               iceberg_grounded_statuses0, iceberg_ids, rcm_datetime0, next_rcm_time,
                                                hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean):
     deg_radius = 30
     g = 9.80665
@@ -1172,6 +1172,11 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                     new_iceberg_draft = 0.
                     new_iceberg_sail = 0.
                     new_iceberg_mass = 0.
+
+                if new_iceberg_length < 40:
+                    print('Warning: Iceberg ' + str(iceberg_ids[k]) + ' predicted to deteriorate to ' + str(new_iceberg_length) +
+                          ' meters waterline length at ' + str(iceberg_times[i + 1]) + 'UTC at ' + str(iceberg_lat2) +
+                          u'\N{DEGREE SIGN}' + 'N/' + str(-iceberg_lon2) + u'\N{DEGREE SIGN}' + 'W.')
 
                 iceberg_lengths[i + 1, k] = new_iceberg_length
                 iceberg_drafts[i + 1, k] = new_iceberg_draft
