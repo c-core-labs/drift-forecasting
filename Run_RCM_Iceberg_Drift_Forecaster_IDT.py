@@ -5,7 +5,7 @@ import time
 import warnings
 warnings.simplefilter(action='ignore')
 
-# Script runtime: 12.46 minutes for 2 icebergs forecast to 23 hours and 47 minutes.
+# Script runtime: 11.84 minutes for 2 icebergs forecast to 24 hours.
 
 start_time = time.time()
 
@@ -13,7 +13,7 @@ iceberg_lats0 = [47.5, 47.5]
 iceberg_lons0 = [-46.9, -46.5]
 # rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc))  # - np.timedelta64(12, 'h')
 rcm_datetime0 = np.datetime64('2024-12-09T18:18:50.104590')
-next_rcm_time = rcm_datetime0 + np.timedelta64(23, 'h') + np.timedelta64(47, 'm')
+next_rcm_time = rcm_datetime0 + np.timedelta64(24, 'h') # + np.timedelta64(23, 'm')
 iceberg_lengths0 = [50., 67.]
 iceberg_ids = [0, 1]
 iceberg_grounded_statuses0 = ['not grounded', 'not grounded']
