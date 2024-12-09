@@ -306,6 +306,7 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
     iceberg_lats0 = np.array(iceberg_lats0)
     iceberg_lons0 = np.array(iceberg_lons0)
     iceberg_lengths0 = np.array(iceberg_lengths0)
+    iceberg_grounded_statuses0 = [1 if status == 'grounded' else 0 for status in iceberg_grounded_statuses0]
     iceberg_grounded_statuses0 = np.array(iceberg_grounded_statuses0)
 
     iceberg_drafts0 = np.empty((len(iceberg_lats0),))
@@ -321,7 +322,7 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
         iceberg_sails0[i] = 0.077 * (iceberg_lengths0[i] ** 2) # m ** 2
         iceberg_bathy_depth0 = bathy_interp([[iceberg_lats0[i], iceberg_lons0[i]]])[0]
 
-        if iceberg_grounded_statuses0[i] == 'not grounded' and iceberg_bathy_depth0 <= iceberg_drafts0[i]:
+        if iceberg_grounded_statuses0[i] == 0 and iceberg_bathy_depth0 <= iceberg_drafts0[i]:
             iceberg_drafts0[i] = iceberg_bathy_depth0 - 1.
 
     iceberg_times = [forecast_time]
@@ -451,8 +452,8 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
     lon_wind_waves = wind_data.variables['longitude'][:]
     wind_data.close()
 
-    fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + 'CMC_glb_TMP_TGL_2_latlon.15x.15_' + d_airT_sw_rad + hour_utc_str_airT_sw_rad + '_P' + \
-            str(forecast_times_airT_sw_rad_hours[0]).zfill(3) + '.nc'
+    fname = (rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/CMC_glb_TMP_TGL_2_latlon.15x.15_' +
+             d_airT_sw_rad + hour_utc_str_airT_sw_rad + '_P' + str(forecast_times_airT_sw_rad_hours[0]).zfill(3) + '.nc')
     airT_data = nc.Dataset(fname)
     lat_airT_sw_rad = airT_data.variables['latitude'][:]
     lon_airT_sw_rad = airT_data.variables['longitude'][:]
@@ -562,7 +563,7 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
 
             fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + d_ocean + 'T' + hour_utc_str_ocean + \
                     'Z_MSC_RIOPS_SOSSHEIG_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
-            print('Computing forecast sea surface height gradients and writing file for ' + d_ocean + 'T' + hour_utc_str_ocean + \
+            print('Computing forecast sea surface height gradients and writing file ' + d_ocean + 'T' + hour_utc_str_ocean + \
                   'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc')
             ssh_data = nc.Dataset(fname)
             ssh = np.squeeze(ssh_data.variables['sossheig'][:])
@@ -621,7 +622,7 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
         date_only_airT_sw_rad = str(base_time_airT_sw_rad.astype('datetime64[D]')).replace('-', '')
 
         for i in range(len(iceberg_times) - 1):
-            print('Forecasting icebergs at ' + str(iceberg_times[i]) + 'UTC...')
+            print('Forecasting icebergs at ' + str(iceberg_times[i]) + ' UTC...')
             iceberg_time = iceberg_times[i]
             iceberg_time2 = iceberg_times[i + 1]
             before_idx = np.where(file_times_wind_waves <= iceberg_time)[0][-1]
@@ -1136,7 +1137,7 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                     iceberg_u_end = iceberg_u
                     iceberg_v_end = iceberg_v
 
-                if iceberg_grounded_status == 'grounded':
+                if iceberg_grounded_status == 1:
                     iceberg_u_end = 0.
                     iceberg_v_end = 0.
 
@@ -1157,11 +1158,11 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                 iceberg_bathy_depth = bathy_interp([[iceberg_lat2, iceberg_lon2]])[0]
 
                 if iceberg_bathy_depth <= ib_draft:
-                    iceberg_grounded_statuses[i + 1, k] = 'grounded'
+                    iceberg_grounded_statuses[i + 1, k] = 1
                     iceberg_us[i + 1, k] = 0.
                     iceberg_vs[i + 1, k] = 0.
                 else:
-                    iceberg_grounded_statuses[i + 1, k] = 'not grounded'
+                    iceberg_grounded_statuses[i + 1, k] = 0
 
                 if ib_mass > 0:
                     new_iceberg_length, new_iceberg_draft, new_iceberg_sail, new_iceberg_mass = iceberg_det(ib_length, ib_mass, iceberg_lat, solar_rad_ib,
@@ -1177,7 +1178,7 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
 
                 if new_iceberg_length < 40:
                     print('Warning: Iceberg ' + str(iceberg_ids[k]) + ' predicted to deteriorate to ' + str(new_iceberg_length) +
-                          ' meters waterline length at ' + str(iceberg_times[i + 1]) + 'UTC at ' + str(iceberg_lat2) +
+                          ' meters waterline length at ' + str(iceberg_times[i + 1]) + ' UTC at ' + str(iceberg_lat2) +
                           u'\N{DEGREE SIGN}' + 'N/' + str(-iceberg_lon2) + u'\N{DEGREE SIGN}' + 'W.')
 
                 iceberg_lengths[i + 1, k] = new_iceberg_length

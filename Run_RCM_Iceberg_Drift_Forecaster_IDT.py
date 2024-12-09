@@ -5,6 +5,8 @@ import time
 import warnings
 warnings.simplefilter(action='ignore')
 
+# Script runtime: 12.46 minutes for 2 icebergs forecast to 23 hours and 47 minutes.
+
 start_time = time.time()
 
 iceberg_lats0 = [47.5, 47.5]
