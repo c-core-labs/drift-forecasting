@@ -51,7 +51,6 @@ else:
 
 wind_waves_ocean_hours = np.arange(0, forecast_hours + 1, 1)
 airT_sw_rad_hours = np.arange(0, forecast_hours + 1, 3)
-Re = 6371e3
 
 if not os.path.isdir(rootpath_to_metdata):
     os.mkdir(rootpath_to_metdata)

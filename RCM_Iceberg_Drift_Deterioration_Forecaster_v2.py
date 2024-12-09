@@ -6,8 +6,6 @@ import numpy as np
 import netCDF4 as nc
 import gsw
 
-# bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
-
 def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metdata, iceberg_lats0, iceberg_lons0, iceberg_lengths0,
                                                iceberg_grounded_statuses0, rcm_datetime0, next_rcm_time,
                                                hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean):
@@ -1183,5 +1181,5 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
     iceberg_masses = iceberg_masses / 1000.
     iceberg_times = np.array(iceberg_times)
     iceberg_times = iceberg_times.astype(str).tolist()
-    return iceberg_lats, iceberg_lons, iceberg_times, iceberg_lengths, iceberg_masses, iceberg_grounded_statuses
+    return iceberg_lats, iceberg_lons, iceberg_times, iceberg_lengths, iceberg_grounded_statuses
 
