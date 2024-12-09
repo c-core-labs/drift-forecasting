@@ -31,7 +31,7 @@ The iceberg waterline lengths are assumed to be in meters. The date/time of the 
 
 1.	The first lines of the function define some constants, including densities for air, seawater, and ice, ice albedo, latent heat of fusion for ice, the earth gravitational acceleration and angular velocity, drag coefficients for air, water, and wave drift forcing on an iceberg, added mass fraction of an iceberg, and radius of the Earth. The deg_radius constant defines how much of the grid for the ocean current and sea surface tilt forecast files will be saved. It is currently set to deg_radius = 30, meaning that these grids will be saved for points within 30 latitude/longitude points of the original iceberg position. The original grids cover the whole North Atlantic region and have 5 km spatial resolution, so this constant ensures the grids will only be saved within a few tens of km of the original iceberg position at the beginning of the drift forecast, more than enough to cover the region in which it could drift in the next 12-24 hours. This saves memory and processing time for the function.
 
-2.	Three nested functions are defined within the rcm_iceberg_drift_deterioration_forecaster function:
+2.	Five nested functions are defined within the rcm_iceberg_drift_deterioration_forecaster function:
 
 •	The first function calculates the distance and azimuthal bearing between two latitude/longitude coordinates,
 •	The second function calculates the latitude/longitude coordinate at a given distance and course from an initial latitude/longitude coordinate,
