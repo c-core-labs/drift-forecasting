@@ -13,6 +13,7 @@ iceberg_lons0 = [-46.9, -46.5]
 rcm_datetime0 = np.datetime64('2024-12-09T18:18:50.104590')
 next_rcm_time = rcm_datetime0 + np.timedelta64(24, 'h') # + np.timedelta64(24, 'm')
 iceberg_lengths0 = [50., 67.]
+iceberg_ids = [0, 1]
 iceberg_grounded_statuses0 = ['not grounded', 'not grounded']
 bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
 rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
@@ -22,7 +23,7 @@ hour_utc_str_ocean = '12'
 
 (iceberg_lats, iceberg_lons, iceberg_times, iceberg_lengths, iceberg_grounded_statuses) = (
     rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metdata, iceberg_lats0, iceberg_lons0, iceberg_lengths0,
-                                               iceberg_grounded_statuses0, rcm_datetime0, next_rcm_time,
+                                               iceberg_grounded_statuses0, iceberg_ids, rcm_datetime0, next_rcm_time,
                                                hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean))
 
 print(iceberg_lats)
