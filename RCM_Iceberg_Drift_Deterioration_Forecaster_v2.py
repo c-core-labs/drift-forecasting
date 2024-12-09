@@ -621,6 +621,7 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
         date_only_airT_sw_rad = str(base_time_airT_sw_rad.astype('datetime64[D]')).replace('-', '')
 
         for i in range(len(iceberg_times) - 1):
+            print('Forecasting icebergs at ' + str(iceberg_times[i]) + 'UTC...')
             iceberg_time = iceberg_times[i]
             iceberg_time2 = iceberg_times[i + 1]
             before_idx = np.where(file_times_wind_waves <= iceberg_time)[0][-1]
@@ -916,6 +917,7 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
             weight_airT_sw_rad = (t_new - t1) / (t2 - t1)
 
             for k in range(len(iceberg_lats0)):
+                print('Forecasting iceberg ' + str(iceberg_ids[k]) + '...')
                 iceberg_lat = iceberg_lats[i, k]
                 iceberg_lon = iceberg_lons[i, k]
                 iceberg_u = iceberg_us[i, k]
@@ -1183,7 +1185,6 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                 iceberg_sails[i + 1, k] = new_iceberg_sail
                 iceberg_masses[i + 1, k] = new_iceberg_mass
 
-    iceberg_masses = iceberg_masses / 1000.
     iceberg_times = np.array(iceberg_times)
     iceberg_times = iceberg_times.astype(str).tolist()
     return iceberg_lats, iceberg_lons, iceberg_times, iceberg_lengths, iceberg_grounded_statuses
