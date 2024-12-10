@@ -101,6 +101,14 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
         ib_acc_N = F_sum_N / (iceberg_mass + am * iceberg_mass)
         return ib_acc_E, ib_acc_N
 
+    def duv_dt(t, uv):
+        iceberg_u_init, iceberg_v_init = uv
+        ib_acc_E, ib_acc_N = iceberg_acc(iceberg_lat, iceberg_u_init, iceberg_v_init, new_iceberg_sail, new_iceberg_draft,
+                                         new_iceberg_length, new_iceberg_mass, iceberg_times_dt[i], am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
+                                         u_wind_ib, v_wind_ib, [u_curr_ib, u_curr_ib2], [v_curr_ib, v_curr_ib2],
+                                         ssh_grad_x_ib, ssh_grad_y_ib, Hs_ib, wave_dir_ib)
+        return ib_acc_E, ib_acc_N
+
     def iceberg_det(iceberg_length, iceberg_mass, solar_rad, ice_albedo, Lf_ice, rho_ice, water_temps, water_sals, water_depths, air_temp,
                     u_curr, v_curr, u_wind, v_wind, iceberg_u, iceberg_v, Hs, wave_pd, time_dt):
         water_temps = np.array(water_temps)
@@ -529,7 +537,7 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
             water_temps = water_temps[:, :, loc_depth, :]
             water_sals = water_sals[:, :, loc_depth, :]
         else:
-            depth_curr_ib = list(depth_curr)
+            depth_curr_ib = list(depth_curr[:1])
             depth_curr_ib_interp = np.arange(0., depth_curr[-1], 0.001)
 
         u_curr_depth_list = []
@@ -578,15 +586,34 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
         interp_func = interp1d(depth_curr_ib, water_sals_depth_list, kind='linear', fill_value='extrapolate')
         water_sals_ib_list = interp_func(depth_curr_ib_interp)
 
-        def duv_dt(t, uv):
-            iceberg_u_init, iceberg_v_init = uv
-            ib_acc_E, ib_acc_N = iceberg_acc(iceberg_lat, iceberg_u_init, iceberg_v_init, ib_sail, ib_draft, ib_length,
-                                             ib_mass, iceberg_times_dt[i], am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
-                                             u_wind_ib, v_wind_ib, [u_curr_ib, u_curr_ib2], [v_curr_ib, v_curr_ib2],
-                                             ssh_grad_x_ib, ssh_grad_y_ib, Hs_ib, wave_dir_ib)
-            return ib_acc_E, ib_acc_N
-
         if ib_mass > 0:
+            new_iceberg_length, new_iceberg_draft, new_iceberg_sail, new_iceberg_mass = iceberg_det(ib_length, ib_mass,
+                                                                                                    sw_rad_ib, ice_albedo, Lf_ice,
+                                                                                                    rho_ice, water_temps_ib_list,
+                                                                                                    water_sals_ib_list, depth_curr_ib_interp,
+                                                                                                    airT_ib, u_curr_ib, v_curr_ib, u_wind_ib,
+                                                                                                    v_wind_ib, iceberg_u, iceberg_v, Hs_ib, wave_pd_ib,
+                                                                                                    iceberg_times_dt[i])
+            iceberg_bathy_depth = bathy_interp([[iceberg_lat, iceberg_lon]])[0]
+
+            if iceberg_bathy_depth <= new_iceberg_draft:
+                grounded_status = 'grounded'
+                iceberg_us[i] = 0.
+                iceberg_vs[i] = 0.
+            else:
+                grounded_status = 'not grounded'
+        else:
+            new_iceberg_length = 0.
+            new_iceberg_draft = 0.
+            new_iceberg_sail = 0.
+            new_iceberg_mass = 0.
+
+        iceberg_lengths[i + 1] = new_iceberg_length
+        iceberg_drafts[i + 1] = new_iceberg_draft
+        iceberg_sails[i + 1] = new_iceberg_sail
+        iceberg_masses[i + 1] = new_iceberg_mass
+
+        if new_iceberg_mass > 0:
             solution = solve_ivp(duv_dt, (0., iceberg_times_dt[i]), [iceberg_u, iceberg_v], method='BDF', t_eval=[0., iceberg_times_dt[i]])
 
             # Results
@@ -626,25 +653,6 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
             grounded_status = 'grounded'
             iceberg_us[i + 1] = 0.
             iceberg_vs[i + 1] = 0.
-
-        if ib_mass > 0:
-            new_iceberg_length, new_iceberg_draft, new_iceberg_sail, new_iceberg_mass = iceberg_det(ib_length, ib_mass,
-                                                                                                    sw_rad_ib, ice_albedo, Lf_ice,
-                                                                                                    rho_ice, water_temps_ib_list,
-                                                                                                    water_sals_ib_list, depth_curr_ib_interp,
-                                                                                                    airT_ib, u_curr_ib, v_curr_ib, u_wind_ib,
-                                                                                                    v_wind_ib, iceberg_u, iceberg_v, Hs_ib, wave_pd_ib,
-                                                                                                    iceberg_times_dt[i])
-        else:
-            new_iceberg_length = 0.
-            new_iceberg_draft = 0.
-            new_iceberg_sail = 0.
-            new_iceberg_mass = 0.
-
-        iceberg_lengths[i + 1] = new_iceberg_length
-        iceberg_drafts[i + 1] = new_iceberg_draft
-        iceberg_sails[i + 1] = new_iceberg_sail
-        iceberg_masses[i + 1] = new_iceberg_mass
 
     iceberg_mass = iceberg_mass / 1000. # Convert back to tonnes
     iceberg_masses = iceberg_masses / 1000.
