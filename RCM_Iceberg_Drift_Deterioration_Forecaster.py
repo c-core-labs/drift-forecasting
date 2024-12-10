@@ -928,7 +928,6 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                 iceberg_v = iceberg_vs[i, k]
                 ib_length = iceberg_lengths[i, k]
                 ib_draft = iceberg_drafts[i, k]
-                ib_sail = iceberg_sails[i, k]
                 ib_mass = iceberg_masses[i, k]
                 iceberg_grounded_status = iceberg_grounded_statuses[i, k]
 
@@ -1140,10 +1139,12 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
 
                     if iceberg_bathy_depth <= new_iceberg_draft:
                         iceberg_grounded_statuses[i, k] = 1
+                        iceberg_grounded_status = 1
                         iceberg_us[i, k] = 0.
                         iceberg_vs[i, k] = 0.
                     else:
                         iceberg_grounded_statuses[i, k] = 0
+                        iceberg_grounded_status = 0
                 else:
                     new_iceberg_length = 0.
                     new_iceberg_draft = 0.

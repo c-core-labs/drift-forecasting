@@ -486,7 +486,6 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
         iceberg_v = iceberg_vs[i]
         ib_length = iceberg_lengths[i]
         ib_draft = iceberg_drafts[i]
-        ib_sail = iceberg_sails[i]
         ib_mass = iceberg_masses[i]
 
         f_u_wind = RegularGridInterpolator((lat_wind, lon_wind, time_wind_wave_hours), u_wind, method='linear', bounds_error=True, fill_value=np.nan)
