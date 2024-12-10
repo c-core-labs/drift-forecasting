@@ -122,8 +122,8 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
 
     def duv_dt(t, uv):
         iceberg_u_init, iceberg_v_init = uv
-        ib_acc_E, ib_acc_N = iceberg_acc(iceberg_lat, iceberg_u_init, iceberg_v_init, ib_sail, ib_draft, ib_length, ib_mass,
-                                         iceberg_times_dt[i], am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
+        ib_acc_E, ib_acc_N = iceberg_acc(iceberg_lat, iceberg_u_init, iceberg_v_init, new_iceberg_sail, new_iceberg_draft,
+                                         new_iceberg_length, new_iceberg_mass, iceberg_times_dt[i], am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
                                          u_wind_ib, v_wind_ib, [u_curr_ib, u_curr_ib2], [v_curr_ib, v_curr_ib2],
                                          ssh_grad_x_ib, ssh_grad_y_ib, Hs_ib, wave_dir_ib)
         return ib_acc_E, ib_acc_N
@@ -1131,6 +1131,36 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                     pot_temp_ib_list.append(pot_temp_ib)
 
                 if ib_mass > 0:
+                    new_iceberg_length, new_iceberg_draft, new_iceberg_sail, new_iceberg_mass = iceberg_det(ib_length, ib_mass, iceberg_lat, solar_rad_ib,
+                                                                                                            ice_albedo, Lf_ice, rho_ice, pot_temp_ib_list,
+                                                                                                            salinity_ib_list, depth_curr_ib_interp, airT_ib,
+                                                                                                            u_curr_ib, v_curr_ib, u_wind_ib, v_wind_ib,
+                                                                                                            iceberg_u, iceberg_v, Hs_ib, wave_pd_ib, iceberg_times_dt[i])
+                    iceberg_bathy_depth = bathy_interp([[iceberg_lat, iceberg_lon]])[0]
+
+                    if iceberg_bathy_depth <= new_iceberg_draft:
+                        iceberg_grounded_statuses[i, k] = 1
+                        iceberg_us[i, k] = 0.
+                        iceberg_vs[i, k] = 0.
+                    else:
+                        iceberg_grounded_statuses[i, k] = 0
+                else:
+                    new_iceberg_length = 0.
+                    new_iceberg_draft = 0.
+                    new_iceberg_sail = 0.
+                    new_iceberg_mass = 0.
+
+                if new_iceberg_length < 40:
+                    print('Warning: Iceberg ' + str(iceberg_ids[k]) + ' predicted to deteriorate to ' + str(new_iceberg_length) +
+                          ' meters waterline length at ' + str(iceberg_times[i]) + ' UTC at ' + str(iceberg_lat) +
+                          u'\N{DEGREE SIGN}' + 'N/' + str(-iceberg_lon) + u'\N{DEGREE SIGN}' + 'W.')
+
+                iceberg_lengths[i + 1, k] = new_iceberg_length
+                iceberg_drafts[i + 1, k] = new_iceberg_draft
+                iceberg_sails[i + 1, k] = new_iceberg_sail
+                iceberg_masses[i + 1, k] = new_iceberg_mass
+
+                if new_iceberg_mass > 0:
                     solution = solve_ivp(duv_dt, (0., iceberg_times_dt[i]), [iceberg_u, iceberg_v], method='BDF', t_eval=[0., iceberg_times_dt[i]])
                     iceberg_u_end = solution.y[0][-1]
                     iceberg_v_end = solution.y[1][-1]
@@ -1161,37 +1191,14 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                 iceberg_vs[i + 1, k] = iceberg_v_end
                 iceberg_lats[i + 1, k] = iceberg_lat2
                 iceberg_lons[i + 1, k] = iceberg_lon2
-
                 iceberg_bathy_depth = bathy_interp([[iceberg_lat2, iceberg_lon2]])[0]
 
-                if iceberg_bathy_depth <= ib_draft:
+                if iceberg_bathy_depth <= new_iceberg_draft:
                     iceberg_grounded_statuses[i + 1, k] = 1
                     iceberg_us[i + 1, k] = 0.
                     iceberg_vs[i + 1, k] = 0.
                 else:
                     iceberg_grounded_statuses[i + 1, k] = 0
-
-                if ib_mass > 0:
-                    new_iceberg_length, new_iceberg_draft, new_iceberg_sail, new_iceberg_mass = iceberg_det(ib_length, ib_mass, iceberg_lat, solar_rad_ib,
-                                                                                                            ice_albedo, Lf_ice, rho_ice, pot_temp_ib_list,
-                                                                                                            salinity_ib_list, depth_curr_ib_interp, airT_ib,
-                                                                                                            u_curr_ib, v_curr_ib, u_wind_ib, v_wind_ib,
-                                                                                                            iceberg_u, iceberg_v, Hs_ib, wave_pd_ib, iceberg_times_dt[i])
-                else:
-                    new_iceberg_length = 0.
-                    new_iceberg_draft = 0.
-                    new_iceberg_sail = 0.
-                    new_iceberg_mass = 0.
-
-                if new_iceberg_length < 40:
-                    print('Warning: Iceberg ' + str(iceberg_ids[k]) + ' predicted to deteriorate to ' + str(new_iceberg_length) +
-                          ' meters waterline length at ' + str(iceberg_times[i + 1]) + ' UTC at ' + str(iceberg_lat2) +
-                          u'\N{DEGREE SIGN}' + 'N/' + str(-iceberg_lon2) + u'\N{DEGREE SIGN}' + 'W.')
-
-                iceberg_lengths[i + 1, k] = new_iceberg_length
-                iceberg_drafts[i + 1, k] = new_iceberg_draft
-                iceberg_sails[i + 1, k] = new_iceberg_sail
-                iceberg_masses[i + 1, k] = new_iceberg_mass
 
     iceberg_times = np.array(iceberg_times)
     iceberg_times = iceberg_times.astype(str).tolist()
