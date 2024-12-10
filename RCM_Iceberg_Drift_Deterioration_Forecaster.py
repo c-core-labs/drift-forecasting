@@ -989,16 +989,20 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                 solar_rad_ib = solar_rad_before_ib + weight_airT_sw_rad * (solar_rad_after_ib - solar_rad_before_ib)
 
                 if ib_draft > 0:
-                    loc_depth = np.argwhere(ocean_depth <= ib_draft).flatten()
+                    try:
+                        loc_depth = np.argwhere(ocean_depth <= ib_draft).flatten()
 
-                    if loc_depth[-1] + 1 < len(ocean_depth):
-                        loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
+                        if loc_depth[-1] + 1 < len(ocean_depth):
+                            loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
 
-                    depth_curr_ib = ocean_depth[loc_depth]
-                    depth_curr_ib = depth_curr_ib.tolist()
-                    depth_curr_ib_interp = np.arange(0., ib_draft, 0.001)
+                        depth_curr_ib = ocean_depth[loc_depth]
+                        depth_curr_ib = depth_curr_ib.tolist()
+                        depth_curr_ib_interp = np.arange(0., ib_draft, 0.001)
+                    except:
+                        depth_curr_ib = list(ocean_depth[:1])
+                        depth_curr_ib_interp = np.arange(0., ib_draft, 0.001)
                 else:
-                    depth_curr_ib = list(ocean_depth)
+                    depth_curr_ib = list(ocean_depth[:1])
                     depth_curr_ib_interp = np.arange(0., ocean_depth[-1], 0.001)
 
                 u_curr_before_depth_list = []
