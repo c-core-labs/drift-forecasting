@@ -314,7 +314,8 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
     iceberg_sails0 = np.empty((len(iceberg_lats0),))
 
     for i in range(len(iceberg_lats0)):
-        if not isinstance(iceberg_lengths0[i], (int, float)) or iceberg_lengths0[i] <= 0:
+        if (not isinstance(iceberg_lengths0[i], (int, float)) or np.any(np.isnan(iceberg_lengths0[i])) or
+                np.any(np.isinf(iceberg_lengths0[i])) or np.any(~np.isreal(iceberg_lengths0[i])) or iceberg_lengths0[i] <= 0):
             iceberg_lengths0[i] = 100.
 
         iceberg_drafts0[i] = 1.78 * (iceberg_lengths0[i] ** 0.71) # meters
