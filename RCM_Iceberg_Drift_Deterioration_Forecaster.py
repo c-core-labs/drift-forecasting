@@ -325,6 +325,8 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
 
         if iceberg_grounded_statuses0[i] == 0 and iceberg_bathy_depth0 <= iceberg_drafts0[i]:
             iceberg_drafts0[i] = iceberg_bathy_depth0 - 1.
+        elif iceberg_grounded_statuses0[i] == 1:
+            iceberg_drafts0[i] = iceberg_bathy_depth0
 
     iceberg_times = [forecast_time]
     current_time = forecast_time
