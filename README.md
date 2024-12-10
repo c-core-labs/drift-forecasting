@@ -1,3 +1,40 @@
+Title: Documentation for Get_RCM_Iceberg_Metocean_Data.py
+Author: Ian D. Turnbull
+
+Summary:
+
+The Get_RCM_Iceberg_Metocean_Data.py Python script downloads the latest available metocean forecast data needed to run the rcm_iceberg_drift_deterioration_forecaster function contained in the RCM_Iceberg_Drift_Deterioration_Forecaster.py script. If the maximum number of forecast hours are entered, the script will take approximately two hours to download the daily forecast files for air temperature, solar radiation, wind velocity, significant wave height, wave direction, mean wave period, ocean potential temperature, salinity, current velocity, and sea surface height. This will require about 43 GB of storage memory.
+
+Python Libraries Used in Current Version of the Script:
+
+subprocess
+numpy v1.26.4
+requests v2.32.3
+os
+
+How the Script Works:
+
+The script requires only the following three inputs:
+
+•	The root path to be created to store the metocean data (rootpath_to_metdata),
+•	The path to the wgrib tool (wgrib_path) to convert grib2 files to NetCDF, and
+•	The number of forecast hours to be obtained (forecast_hours):
+o	This must be at least 3 and not more than 84 since the air temperature and solar radiation data are provided at 3-hour intervals and the ocean data are provided out to 84 hours (3.5 days).
+
+1.	The script creates the root path to store the metocean data and then creates three subdirectories for the air temperature and solar radiation data, the wind and wave data, and the ocean data. A directory for today in the format yyyy-mm-dd is created in each subdirectory.
+
+2.	The script checks for the latest available metocean forecast data from each of the three models. Air temperature and solar radiation data are obtained from the Environment and Climate Change Canada (ECCC) Global Deterministic Prediction System (GDPS) which as a 15-km and three-hourly spatial and temporal resolution, respectively. Forecasts are issued twice daily at 00:00 and 12:00 Universal Time Coordinated (UTC). Data for significant wave height, wave direction, mean wave period, and wind velocity are obtained from the ECCC Global Deterministic Wave Prediction System (GDWPS) which as a 25-km and hourly spatial and temporal resolution, respectively. Forecasts are issued twice daily at 00:00 and 12:00 UTC. Data for ocean current velocity, potential temperature, salinity, and sea surface height are obtained from the Fisheries and Oceans Canada (DFO) Regional Ice Ocean Prediction System (RIOPS) which has a 5-km and hourly spatial and temporal resolution, respectively. Forecasts are issued four times daily at 00:00, 06:00, 12:00, and 18:00 UTC.
+
+3.	The grib2 files for the atmospheric, wave, and wind data are converted to NetCDF format using the wgrib tool. The RIOPS ocean data are already in NetCDF format.
+
+References:
+
+GDPS. (2024). “Global Deterministic Prediction System (GDPS) data in GRIB2 format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_gdps/readme_gdps-datamart_en/, November 1, 2024.
+
+GDWPS. (2024). “Global Deterministic Wave Prediction System (GDWPS) data in GRIB2 format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_gdwps/readme_gdwps-datamart_en/, November 1, 2024.
+
+RIOPS. (2024). “Regional Ice Ocean Prediction System (RIOPS) Data in NetCDF Format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_riops/readme_riops-datamart_en/, November 1, 2024.
+
 Title: Documentation for RCM_Iceberg_Drift_Deterioration_Forecaster.py
 Author: Ian D. Turnbull
 
