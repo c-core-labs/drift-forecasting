@@ -12,6 +12,7 @@ warnings.simplefilter(action='ignore')
 rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
 wgrib_path = './wgrib/'
 forecast_hours = 84
+si_toggle = True
 
 dirname_today = str(np.datetime64('today'))
 d_today = dirname_today.replace('-', '')
@@ -130,9 +131,9 @@ for i in range(len(airT_sw_rad_hours)):
         d_today + hour_utc_str_airT_sw_rad + '_P' + str(airT_sw_rad_hours[i]).zfill(3) + '.nc')
     os.remove(fname)
 
-for i in range(len(wind_waves_ocean_hours)):
-    directory = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/'
+directory = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/'
 
+for i in range(len(wind_waves_ocean_hours)):
     url = 'https://dd.weather.gc.ca/model_gdwps/25km/' + hour_utc_str_wind_waves + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
         'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.grib2'
     fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_wind_waves + \
@@ -258,8 +259,9 @@ for i in range(len(wind_waves_ocean_hours)):
         'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + str(wind_waves_ocean_hours[i]).zfill(3) + 'H.nc')
     os.remove(fname)
 
-    directory = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/'
+directory = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/'
 
+for i in range(len(wind_waves_ocean_hours)):
     url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/3d/' + hour_utc_str_ocean + '/' + \
         str(wind_waves_ocean_hours[i]).zfill(3) + '/' + d_today + 'T' + hour_utc_str_ocean + \
         'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc'
@@ -349,4 +351,77 @@ for i in range(len(wind_waves_ocean_hours)):
         except:
             print('Error: could not download forecast sea surface height file ' + d_today + 'T' + hour_utc_str_ocean + \
                   'Z_MSC_RIOPS_SOSSHEIG_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc, retrying...')
+
+    if si_toggle:
+        url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/2d/' + hour_utc_str_ocean + '/' + \
+              str(wind_waves_ocean_hours[i]).zfill(3) + '/' + d_today + 'T' + hour_utc_str_ocean + \
+              'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc'
+        fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_ocean + \
+                'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc'
+        flag = True
+
+        while flag:
+            try:
+                print('Obtaining forecast sea ice concentration file ' + d_today + 'T' + hour_utc_str_ocean + \
+                      'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc')
+                r = requests.get(url, allow_redirects=True, timeout=5.0)
+                open(fname, 'wb').write(r.content)
+                flag = False
+            except:
+                print('Error: could not download forecast sea ice concentration file ' + d_today + 'T' + hour_utc_str_ocean + \
+                      'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc, retrying...')
+
+        url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/2d/' + hour_utc_str_ocean + '/' + \
+              str(wind_waves_ocean_hours[i]).zfill(3) + '/' + d_today + 'T' + hour_utc_str_ocean + \
+              'Z_MSC_RIOPS_IICEVOL_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc'
+        fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_ocean + \
+                'Z_MSC_RIOPS_IICEVOL_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc'
+        flag = True
+
+        while flag:
+            try:
+                print('Obtaining forecast sea ice thickness file ' + d_today + 'T' + hour_utc_str_ocean + \
+                      'Z_MSC_RIOPS_IICEVOL_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc')
+                r = requests.get(url, allow_redirects=True, timeout=5.0)
+                open(fname, 'wb').write(r.content)
+                flag = False
+            except:
+                print('Error: could not download forecast sea ice thickness file ' + d_today + 'T' + hour_utc_str_ocean + \
+                    'Z_MSC_RIOPS_IICEVOL_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc, retrying...')
+
+        url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/2d/' + hour_utc_str_ocean + '/' + \
+              str(wind_waves_ocean_hours[i]).zfill(3) + '/' + d_today + 'T' + hour_utc_str_ocean + \
+              'Z_MSC_RIOPS_ITZOCRTX_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc'
+        fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_ocean + \
+                'Z_MSC_RIOPS_ITZOCRTX_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc'
+        flag = True
+
+        while flag:
+            try:
+                print('Obtaining forecast sea ice zonal velocity file ' + d_today + 'T' + hour_utc_str_ocean + \
+                      'Z_MSC_RIOPS_ITZOCRTX_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc')
+                r = requests.get(url, allow_redirects=True, timeout=5.0)
+                open(fname, 'wb').write(r.content)
+                flag = False
+            except:
+                print('Error: could not download forecast sea ice zonal velocity file ' + d_today + 'T' + hour_utc_str_ocean + \
+                    'Z_MSC_RIOPS_ITZOCRTX_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc, retrying...')
+
+        url = 'https://dd.weather.gc.ca/model_riops/netcdf/forecast/polar_stereographic/2d/' + hour_utc_str_ocean + '/' + \
+              str(wind_waves_ocean_hours[i]).zfill(3) + '/' + d_today + 'T' + hour_utc_str_ocean + \
+              'Z_MSC_RIOPS_ITMECRTY_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc'
+        fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_ocean + \
+                'Z_MSC_RIOPS_ITMECRTY_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc'
+        flag = True
+
+        while flag:
+            try:
+                print('Obtaining forecast sea ice meridional velocity file ' + d_today + 'T' + hour_utc_str_ocean + \
+                      'Z_MSC_RIOPS_ITMECRTY_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc')
+                r = requests.get(url, allow_redirects=True, timeout=5.0)
+                open(fname, 'wb').write(r.content)
+                flag = False
+            except:
+                print('Error: could not download forecast sea ice meridional velocity file ' + d_today + 'T' + hour_utc_str_ocean + \
+                    'Z_MSC_RIOPS_ITMECRTY_SFC_PS5km_P' + str(wind_waves_ocean_hours[i]).zfill(3) + '.nc, retrying...')
 
