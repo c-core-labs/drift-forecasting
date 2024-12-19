@@ -69,6 +69,9 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
         if np.any(np.isnan(Hs)) or np.any(np.isinf(Hs)) or np.any(~np.isreal(Hs)) or Hs < 0 or siconc >= 0.9:
             Hs = 0.001
 
+        if siconc > 1:
+            siconc = 1.
+
         if np.any(np.isnan(siconc)) or np.any(np.isinf(siconc)) or np.any(~np.isreal(siconc)) or siconc < 0:
             siconc = 0.
             sithick = 0.
@@ -557,6 +560,18 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
         siconc_ib = float(f_siconc([iceberg_lat, iceberg_lon, iceberg_time_wind_wave_hours[i]]))
         f_sithick = RegularGridInterpolator((lat_si, lon_si, time_wind_wave_hours), sithick, method='linear', bounds_error=True, fill_value=np.nan)
         sithick_ib = float(f_sithick([iceberg_lat, iceberg_lon, iceberg_time_wind_wave_hours[i]]))
+
+        if siconc_ib > 1:
+            siconc_ib = 1.
+
+        if np.any(np.isnan(siconc_ib)) or np.any(np.isinf(siconc_ib)) or np.any(~np.isreal(siconc_ib)) or siconc_ib < 0:
+            siconc_ib = 0.
+            sithick_ib = 0.
+
+        if np.any(np.isnan(sithick_ib)) or np.any(np.isinf(sithick_ib)) or np.any(~np.isreal(sithick_ib)) or sithick_ib < 0:
+            siconc_ib = 0.
+            sithick_ib = 0.
+
         iceberg_siconcs[i] = siconc_ib
         wave_dir_ib = 90. - np.rad2deg(np.arctan2(wave_dir_N_ib, wave_dir_E_ib))
 
