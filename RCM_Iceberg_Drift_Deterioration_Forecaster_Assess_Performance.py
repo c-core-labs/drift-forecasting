@@ -28,7 +28,7 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
     Cw = 0.7867
     Ca = 1.1857
     C_wave = 0.6
-    C_si = 1.
+    Csi = 1.
     rho_si = 875.
     am = 0.5
     Re = 6371e3
@@ -45,7 +45,7 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
         return lat2, lon2
 
     def iceberg_acc(iceberg_lat, iceberg_u, iceberg_v, iceberg_sail, iceberg_draft, iceberg_length, iceberg_mass, dt, am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
-                      u_wind, v_wind, u_curr, v_curr, ssh_grad_x, ssh_grad_y, Hs, wave_dir, siconc, sithick, usi, vsi, C_si, rho_si):
+                      u_wind, v_wind, u_curr, v_curr, ssh_grad_x, ssh_grad_y, Hs, wave_dir, siconc, sithick, usi, vsi, Csi, rho_si):
         iceberg_keel = iceberg_length * iceberg_draft
 
         if (np.any(np.isnan(u_wind)) or np.any(np.isnan(v_wind)) or np.any(np.isinf(u_wind)) or np.any(np.isinf(v_wind))
@@ -102,7 +102,6 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
             ssh_grad_y = 0.
 
         h_min = 660.9 / ((20e3) * np.exp(-20 * (1 - siconc)))
-
         Fa_E = 0.5 * rho_air * Ca * iceberg_sail * np.sqrt((u_wind - iceberg_u) ** 2 + (v_wind - iceberg_v) ** 2) * (u_wind - iceberg_u)
         Fw_E = 0.5 * rho_water * Cw * iceberg_keel * np.sqrt((u_curr[0] - iceberg_u) ** 2 + (v_curr[0] - iceberg_v) ** 2) * (u_curr[0] - iceberg_u)
         f = 2. * omega * np.sin(np.deg2rad(iceberg_lat))
@@ -120,9 +119,9 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
         if siconc <= 0.15:
             Fsi_E = 0.
             Fsi_N = 0.
-        elif siconc > 0.15 and siconc < 0.9:
-            Fsi_E = 0.5 * rho_si * C_si * sithick * iceberg_length * np.sqrt((usi - iceberg_u) ** 2 + (vsi - iceberg_v) ** 2) * (usi - iceberg_u)
-            Fsi_N = 0.5 * rho_si * C_si * sithick * iceberg_length * np.sqrt((usi - iceberg_u) ** 2 + (vsi - iceberg_v) ** 2) * (vsi - iceberg_v)
+        elif (siconc > 0.15 and siconc < 0.9) or (siconc >= 0.9 and sithick < h_min):
+            Fsi_E = 0.5 * rho_si * Csi * sithick * iceberg_length * np.sqrt((usi - iceberg_u) ** 2 + (vsi - iceberg_v) ** 2) * (usi - iceberg_u)
+            Fsi_N = 0.5 * rho_si * Csi * sithick * iceberg_length * np.sqrt((usi - iceberg_u) ** 2 + (vsi - iceberg_v) ** 2) * (vsi - iceberg_v)
         elif siconc >= 0.9 and sithick >= h_min:
             Fsi_E = -(Fa_E + Fw_E + Fc_E + Fp_E + Fs_E + Fr_E)
             Fsi_N = -(Fa_N + Fw_N + Fc_N + Fp_N + Fs_N + Fr_N)
@@ -141,7 +140,7 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
         ib_acc_E, ib_acc_N = iceberg_acc(iceberg_lat, iceberg_u_init, iceberg_v_init, new_iceberg_sail, new_iceberg_draft,
                                          new_iceberg_length, new_iceberg_mass, iceberg_times_dt[i], am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
                                          u_wind_ib, v_wind_ib, [u_curr_ib, u_curr_ib2], [v_curr_ib, v_curr_ib2],
-                                         ssh_grad_x_ib, ssh_grad_y_ib, Hs_ib, wave_dir_ib, siconc_ib, sithick_ib, usi_ib, vsi_ib, C_si, rho_si)
+                                         ssh_grad_x_ib, ssh_grad_y_ib, Hs_ib, wave_dir_ib, siconc_ib, sithick_ib, usi_ib, vsi_ib, Csi, rho_si)
         return ib_acc_E, ib_acc_N
 
     def iceberg_det(iceberg_length, iceberg_mass, solar_rad, ice_albedo, Lf_ice, rho_ice, water_temps, water_sals, water_depths, air_temp,
@@ -355,7 +354,7 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
     iceberg_drafts = np.empty((len(iceberg_times),))
     iceberg_sails = np.empty((len(iceberg_times),))
     iceberg_masses = np.empty((len(iceberg_times),))
-    iceberg_siconcs = np.empty((len(iceberg_times),))
+    iceberg_siconcs = np.empty((len(iceberg_times) - 1,))
 
     wind_wave_data = loadmat(wind_wave_data_path)
     lat_wind = wind_wave_data['lat_wind']
