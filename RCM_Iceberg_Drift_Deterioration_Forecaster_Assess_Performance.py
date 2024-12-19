@@ -671,6 +671,12 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
             # Results
             iceberg_u_end = solution.y[0][-1]  # Final u-velocity
             iceberg_v_end = solution.y[1][-1]  # Final v-velocity
+            h_min = 660.9 / ((20e3) * np.exp(-20 * (1 - siconc_ib)))
+
+            if siconc_ib >= 0.9 and sithick_ib >= h_min:
+                iceberg_u_end = usi_ib
+                iceberg_v_end = vsi_ib
+
         else:
             iceberg_u_end = 0.
             iceberg_v_end = 0.
