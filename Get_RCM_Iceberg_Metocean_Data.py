@@ -6,8 +6,13 @@ import os
 import warnings
 warnings.simplefilter(action='ignore')
 
+# Without sea ice data:
 # 43.0 GB of daily metocean forecast data if downloaded only once daily.
 # 2 hours and 11 minutes to download 84 hours (3.5 days) of forecast metocean data.
+
+# With sea ice data:
+# 46.4 GB of daily metocean forecast data if downloaded only once daily.
+# 2 hours and 56 minutes to download 84 hours (3.5 days) of forecast metocean data.
 
 rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
 wgrib_path = './wgrib/'
