@@ -8,7 +8,7 @@ import gsw
 
 def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metdata, iceberg_lats0, iceberg_lons0, iceberg_lengths0,
                                                iceberg_grounded_statuses0, iceberg_ids, rcm_datetime0, next_rcm_time,
-                                               hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean):
+                                               hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean, si_toggle):
     deg_radius = 30
     g = 9.80665
     rho_water = 1023.6
@@ -20,6 +20,8 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
     Cw = 0.7867
     Ca = 1.1857
     C_wave = 0.6
+    Csi = 1.
+    rho_si = 875.
     am = 0.5
     Re = 6371e3
 
@@ -62,13 +64,18 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
         return lat2, lon2
 
     def iceberg_acc(iceberg_lat, iceberg_u, iceberg_v, iceberg_sail, iceberg_draft, iceberg_length, iceberg_mass, dt, am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
-                      u_wind, v_wind, u_curr, v_curr, ssh_grad_x, ssh_grad_y, Hs, wave_dir):
+                    u_wind, v_wind, u_curr, v_curr, ssh_grad_x, ssh_grad_y, Hs, wave_dir, siconc, sithick, usi, vsi, Csi, rho_si):
         iceberg_keel = iceberg_length * iceberg_draft
 
         if (np.any(np.isnan(u_wind)) or np.any(np.isnan(v_wind)) or np.any(np.isinf(u_wind)) or np.any(np.isinf(v_wind))
                 or np.any(~np.isreal(u_wind)) or np.any(~np.isreal(v_wind))):
             u_wind = 0.
             v_wind = 0.
+
+        if (np.any(np.isnan(usi)) or np.any(np.isnan(vsi)) or np.any(np.isinf(usi)) or np.any(np.isinf(vsi))
+                or np.any(~np.isreal(usi)) or np.any(~np.isreal(vsi))):
+            usi = 0.
+            vsi = 0.
 
         wind_dir = 90. - np.rad2deg(np.arctan2(v_wind, u_wind))
 
@@ -78,7 +85,22 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
         if np.any(np.isnan(wave_dir)) or np.any(np.isinf(wave_dir)) or np.any(~np.isreal(wave_dir)):
             wave_dir = wind_dir
 
-        if np.any(np.isnan(Hs)) or np.any(np.isinf(Hs)) or np.any(~np.isreal(Hs)) or Hs < 0:
+        if siconc > 1:
+            siconc = 1.
+
+        if np.any(np.isnan(siconc)) or np.any(np.isinf(siconc)) or np.any(~np.isreal(siconc)) or siconc < 0:
+            siconc = 0.
+            sithick = 0.
+            usi = 0.
+            vsi = 0.
+
+        if np.any(np.isnan(sithick)) or np.any(np.isinf(sithick)) or np.any(~np.isreal(sithick)) or sithick < 0:
+            siconc = 0.
+            sithick = 0.
+            usi = 0.
+            vsi = 0.
+
+        if np.any(np.isnan(Hs)) or np.any(np.isinf(Hs)) or np.any(~np.isreal(Hs)) or Hs < 0 or siconc >= 0.9:
             Hs = 0.001
 
         if (np.any(np.isnan(iceberg_u)) or np.any(np.isnan(iceberg_v)) or np.any(np.isinf(iceberg_u)) or np.any(np.isinf(iceberg_v))
@@ -101,6 +123,7 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
             ssh_grad_x = 0.
             ssh_grad_y = 0.
 
+        h_min = 660.9 / ((20e3) * np.exp(-20 * (1 - siconc)))
         Fa_E = 0.5 * rho_air * Ca * iceberg_sail * np.sqrt((u_wind - iceberg_u) ** 2 + (v_wind - iceberg_v) ** 2) * (u_wind - iceberg_u)
         Fw_E = 0.5 * rho_water * Cw * iceberg_keel * np.sqrt((u_curr[0] - iceberg_u) ** 2 + (v_curr[0] - iceberg_v) ** 2) * (u_curr[0] - iceberg_u)
         f = 2. * omega * np.sin(np.deg2rad(iceberg_lat))
@@ -114,8 +137,22 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
         Fp_N = (iceberg_mass + am * iceberg_mass) * ((v_curr[1] - v_curr[0]) / dt - f * u_curr[0])
         Fs_N = -(iceberg_mass + am * iceberg_mass) * g * ssh_grad_y
         Fr_N = 0.25 * C_wave * rho_water * g * ((0.5 * Hs) ** 2) * iceberg_length * np.cos(np.deg2rad(wave_dir))
-        F_sum_E = Fa_E + Fw_E + Fc_E + Fp_E + Fs_E + Fr_E
-        F_sum_N = Fa_N + Fw_N + Fc_N + Fp_N + Fs_N + Fr_N
+
+        if siconc <= 0.15:
+            Fsi_E = 0.
+            Fsi_N = 0.
+        elif (siconc > 0.15 and siconc < 0.9) or (siconc >= 0.9 and sithick < h_min):
+            Fsi_E = 0.5 * rho_si * Csi * sithick * iceberg_length * np.sqrt((usi - iceberg_u) ** 2 + (vsi - iceberg_v) ** 2) * (usi - iceberg_u)
+            Fsi_N = 0.5 * rho_si * Csi * sithick * iceberg_length * np.sqrt((usi - iceberg_u) ** 2 + (vsi - iceberg_v) ** 2) * (vsi - iceberg_v)
+        elif siconc >= 0.9 and sithick >= h_min:
+            Fsi_E = -(Fa_E + Fw_E + Fc_E + Fp_E + Fs_E + Fr_E)
+            Fsi_N = -(Fa_N + Fw_N + Fc_N + Fp_N + Fs_N + Fr_N)
+        else:
+            Fsi_E = 0.
+            Fsi_N = 0.
+
+        F_sum_E = Fa_E + Fw_E + Fc_E + Fp_E + Fs_E + Fr_E + Fsi_E
+        F_sum_N = Fa_N + Fw_N + Fc_N + Fp_N + Fs_N + Fr_N + Fsi_N
         ib_acc_E = F_sum_E / (iceberg_mass + am * iceberg_mass)
         ib_acc_N = F_sum_N / (iceberg_mass + am * iceberg_mass)
         return ib_acc_E, ib_acc_N
@@ -123,20 +160,26 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
     def duv_dt(t, uv):
         iceberg_u_init, iceberg_v_init = uv
         ib_acc_E, ib_acc_N = iceberg_acc(iceberg_lat, iceberg_u_init, iceberg_v_init, new_iceberg_sail, new_iceberg_draft,
-                                         new_iceberg_length, new_iceberg_mass, iceberg_times_dt[i], am, omega, Cw, Ca, C_wave, g, rho_air, rho_water,
-                                         u_wind_ib, v_wind_ib, [u_curr_ib, u_curr_ib2], [v_curr_ib, v_curr_ib2],
-                                         ssh_grad_x_ib, ssh_grad_y_ib, Hs_ib, wave_dir_ib)
+                                         new_iceberg_length, new_iceberg_mass, iceberg_times_dt[i], am, omega, Cw, Ca,
+                                         C_wave, g, rho_air, rho_water, u_wind_ib, v_wind_ib, [u_curr_ib, u_curr_ib2], [v_curr_ib, v_curr_ib2],
+                                         ssh_grad_x_ib, ssh_grad_y_ib, Hs_ib, wave_dir_ib, siconc_ib, sithick_ib, usi_ib, vsi_ib, Csi, rho_si)
         return ib_acc_E, ib_acc_N
 
     def iceberg_det(iceberg_length, iceberg_mass, iceberg_lat, solar_rad, ice_albedo, Lf_ice, rho_ice, water_pot_temps, water_sals, water_depths, air_temp,
-                    u_curr, v_curr, u_wind, v_wind, iceberg_u, iceberg_v, Hs, wave_pd, time_dt):
+                    u_curr, v_curr, u_wind, v_wind, iceberg_u, iceberg_v, Hs, wave_pd, time_dt, siconc):
         water_pot_temps = np.array(water_pot_temps)
         water_sals = np.array(water_sals)
         water_depths = np.array(water_depths)
         water_pot_temps[np.isnan(water_pot_temps) | np.isinf(water_pot_temps) | ~np.isreal(water_pot_temps)] = 0.
         water_sals[np.isnan(water_sals) | np.isinf(water_sals) | ~np.isreal(water_sals)] = 33.
 
-        if np.any(np.isnan(Hs)) or np.any(np.isinf(Hs)) or np.any(~np.isreal(Hs)) or Hs < 0:
+        if siconc > 1:
+            siconc = 1.
+
+        if np.any(np.isnan(siconc)) or np.any(np.isinf(siconc)) or np.any(~np.isreal(siconc)) or siconc < 0:
+            siconc = 0.
+
+        if np.any(np.isnan(Hs)) or np.any(np.isinf(Hs)) or np.any(~np.isreal(Hs)) or Hs < 0 or siconc >= 0.9:
             Hs = 0.001
 
         if (np.any(np.isnan(iceberg_u)) or np.any(np.isnan(iceberg_v)) or np.any(np.isinf(iceberg_u)) or np.any(np.isinf(iceberg_v))
@@ -609,6 +652,95 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                 ssh_grad_x_var[:] = ssh_grad_x
                 ssh_grad_y_var[:] = ssh_grad_y
 
+            if si_toggle:
+                fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + d_ocean + 'T' + hour_utc_str_ocean + \
+                        'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
+                print('Shrinking forecast sea ice concentration file ' + d_ocean + 'T' + hour_utc_str_ocean + \
+                      'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc')
+                siconc_data = nc.Dataset(fname)
+                siconc = np.squeeze(siconc_data.variables['iiceconc'][:])
+                siconc_data.close()
+                siconc = siconc[lat_min_ocean_ind:lat_max_ocean_ind, lon_min_ocean_ind:lon_max_ocean_ind]
+                fname = directory + '/' + d_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
+
+                with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
+                    ncfile.createDimension('latitude', len(ocean_lat[:, 0]))
+                    ncfile.createDimension('longitude', len(ocean_lon[0, :]))
+
+                    latitude_var = ncfile.createVariable('latitude', 'f8', ('latitude', 'longitude',))
+                    longitude_var = ncfile.createVariable('longitude', 'f8', ('latitude', 'longitude',))
+                    siconc_var = ncfile.createVariable('iiceconc', 'f4', ('latitude', 'longitude',))
+
+                    latitude_var[:] = ocean_lat
+                    longitude_var[:] = ocean_lon
+                    siconc_var[:] = siconc
+
+                fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + d_ocean + 'T' + hour_utc_str_ocean + \
+                        'Z_MSC_RIOPS_IICEVOL_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
+                print('Shrinking forecast sea ice thickness file ' + d_ocean + 'T' + hour_utc_str_ocean + \
+                      'Z_MSC_RIOPS_IICEVOL_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc')
+                sithick_data = nc.Dataset(fname)
+                sithick = np.squeeze(sithick_data.variables['iicevol'][:])
+                sithick_data.close()
+                sithick = sithick[lat_min_ocean_ind:lat_max_ocean_ind, lon_min_ocean_ind:lon_max_ocean_ind]
+                fname = directory + '/' + d_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICEVOL_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
+
+                with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
+                    ncfile.createDimension('latitude', len(ocean_lat[:, 0]))
+                    ncfile.createDimension('longitude', len(ocean_lon[0, :]))
+
+                    latitude_var = ncfile.createVariable('latitude', 'f8', ('latitude', 'longitude',))
+                    longitude_var = ncfile.createVariable('longitude', 'f8', ('latitude', 'longitude',))
+                    sithick_var = ncfile.createVariable('iicevol', 'f4', ('latitude', 'longitude',))
+
+                    latitude_var[:] = ocean_lat
+                    longitude_var[:] = ocean_lon
+                    sithick_var[:] = sithick
+
+                fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + d_ocean + 'T' + hour_utc_str_ocean + \
+                        'Z_MSC_RIOPS_ITZOCRTX_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
+                print('Shrinking forecast sea ice zonal velocity file ' + d_ocean + 'T' + hour_utc_str_ocean + \
+                      'Z_MSC_RIOPS_ITZOCRTX_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc')
+                usi_data = nc.Dataset(fname)
+                usi = np.squeeze(usi_data.variables['itzocrtx'][:])
+                usi_data.close()
+                usi = usi[lat_min_ocean_ind:lat_max_ocean_ind, lon_min_ocean_ind:lon_max_ocean_ind]
+                fname = directory + '/' + d_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_ITZOCRTX_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
+
+                with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
+                    ncfile.createDimension('latitude', len(ocean_lat[:, 0]))
+                    ncfile.createDimension('longitude', len(ocean_lon[0, :]))
+
+                    latitude_var = ncfile.createVariable('latitude', 'f8', ('latitude', 'longitude',))
+                    longitude_var = ncfile.createVariable('longitude', 'f8', ('latitude', 'longitude',))
+                    usi_var = ncfile.createVariable('itzocrtx', 'f4', ('latitude', 'longitude',))
+
+                    latitude_var[:] = ocean_lat
+                    longitude_var[:] = ocean_lon
+                    usi_var[:] = usi
+
+                fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + d_ocean + 'T' + hour_utc_str_ocean + \
+                        'Z_MSC_RIOPS_ITMECRTY_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
+                print('Shrinking forecast sea ice meridional velocity file ' + d_ocean + 'T' + hour_utc_str_ocean + \
+                      'Z_MSC_RIOPS_ITMECRTY_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc')
+                vsi_data = nc.Dataset(fname)
+                vsi = np.squeeze(vsi_data.variables['itmecrty'][:])
+                vsi_data.close()
+                vsi = vsi[lat_min_ocean_ind:lat_max_ocean_ind, lon_min_ocean_ind:lon_max_ocean_ind]
+                fname = directory + '/' + d_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_ITMECRTY_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
+
+                with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
+                    ncfile.createDimension('latitude', len(ocean_lat[:, 0]))
+                    ncfile.createDimension('longitude', len(ocean_lon[0, :]))
+
+                    latitude_var = ncfile.createVariable('latitude', 'f8', ('latitude', 'longitude',))
+                    longitude_var = ncfile.createVariable('longitude', 'f8', ('latitude', 'longitude',))
+                    vsi_var = ncfile.createVariable('itmecrty', 'f4', ('latitude', 'longitude',))
+
+                    latitude_var[:] = ocean_lat
+                    longitude_var[:] = ocean_lon
+                    vsi_var[:] = vsi
+
         base_time_wind_waves = forecast_times_wind_waves[0]
         time_increments_wind_waves = np.arange(forecast_times_wind_waves_hours[0], forecast_times_wind_waves_hours[-1], 1)
         file_times_wind_waves = base_time_wind_waves + time_increments_wind_waves.astype('timedelta64[h]')
@@ -705,6 +837,24 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                                    str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
             ssh_grad_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_SOSSHEIG_SFC_GRAD_PS5km_P' + \
                                   str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
+
+            if si_toggle:
+                siconc_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + \
+                                       str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
+                siconc_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + \
+                                      str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
+                sithick_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICEVOL_SFC_PS5km_P' + \
+                                     str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
+                sithick_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICEVOL_SFC_PS5km_P' + \
+                                    str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
+                usi_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_ITZOCRTX_SFC_PS5km_P' + \
+                                     str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
+                usi_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_ITZOCRTX_SFC_PS5km_P' + \
+                                    str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
+                vsi_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_ITMECRTY_SFC_PS5km_P' + \
+                                  str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
+                vsi_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_ITMECRTY_SFC_PS5km_P' + \
+                                 str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
 
             forecast_time_ocean_before = forecast_times_ocean[before_idx]
             forecast_time_ocean_after = forecast_times_ocean[after_idx]
@@ -874,6 +1024,47 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
             ssh_grad_x_after = np.squeeze(ssh_grad_data_after.variables['ssh_grad_x'][:])
             ssh_grad_y_after = np.squeeze(ssh_grad_data_after.variables['ssh_grad_y'][:])
             ssh_grad_data_after.close()
+
+            if si_toggle:
+                fname = directory + '/' + siconc_file_before
+                siconc_data_before = nc.Dataset(fname)
+                siconc_before = np.squeeze(siconc_data_before.variables['iiceconc'][:])
+                siconc_data_before.close()
+
+                fname = directory + '/' + siconc_file_after
+                siconc_data_after = nc.Dataset(fname)
+                siconc_after = np.squeeze(siconc_data_after.variables['iiceconc'][:])
+                siconc_data_after.close()
+
+                fname = directory + '/' + sithick_file_before
+                sithick_data_before = nc.Dataset(fname)
+                sithick_before = np.squeeze(sithick_data_before.variables['iicevol'][:])
+                sithick_data_before.close()
+
+                fname = directory + '/' + sithick_file_after
+                sithick_data_after = nc.Dataset(fname)
+                sithick_after = np.squeeze(sithick_data_after.variables['iicevol'][:])
+                sithick_data_after.close()
+
+                fname = directory + '/' + usi_file_before
+                usi_data_before = nc.Dataset(fname)
+                usi_before = np.squeeze(usi_data_before.variables['itzocrtx'][:])
+                usi_data_before.close()
+
+                fname = directory + '/' + usi_file_after
+                usi_data_after = nc.Dataset(fname)
+                usi_after = np.squeeze(usi_data_after.variables['itzocrtx'][:])
+                usi_data_after.close()
+
+                fname = directory + '/' + vsi_file_before
+                vsi_data_before = nc.Dataset(fname)
+                vsi_before = np.squeeze(vsi_data_before.variables['itmecrty'][:])
+                vsi_data_before.close()
+
+                fname = directory + '/' + vsi_file_after
+                vsi_data_after = nc.Dataset(fname)
+                vsi_after = np.squeeze(vsi_data_after.variables['itmecrty'][:])
+                vsi_data_after.close()
 
             f_u_wind_before = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), u_wind_before, method='linear', bounds_error=True, fill_value=np.nan)
             f_u_wind_after = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), u_wind_after, method='linear', bounds_error=True, fill_value=np.nan)
@@ -1111,6 +1302,25 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                 ssh_grad_x_after_ib = griddata(points_ssh_grad_x, ssh_grad_x_after.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 ssh_grad_y_after_ib = griddata(points_ssh_grad_y, ssh_grad_y_after.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
 
+                if si_toggle:
+                    siconc_before_ib = griddata(points_ocean, siconc_before.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
+                    siconc_after_ib = griddata(points_ocean, siconc_after.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
+                    sithick_before_ib = griddata(points_ocean, sithick_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    sithick_after_ib = griddata(points_ocean, sithick_after.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    usi_before_ib = griddata(points_ocean, usi_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    usi_after_ib = griddata(points_ocean, usi_after.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    vsi_before_ib = griddata(points_ocean, vsi_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    vsi_after_ib = griddata(points_ocean, vsi_after.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    siconc_ib = siconc_before_ib + weight_ocean * (siconc_after_ib - siconc_before_ib)
+                    sithick_ib = sithick_before_ib + weight_ocean * (sithick_after_ib - sithick_before_ib)
+                    usi_ib = usi_before_ib + weight_ocean * (usi_after_ib - usi_before_ib)
+                    vsi_ib = vsi_before_ib + weight_ocean * (vsi_after_ib - vsi_before_ib)
+                else:
+                    siconc_ib = 0.
+                    sithick_ib = 0.
+                    usi_ib = 0.
+                    vsi_ib = 0.
+
                 u_curr_ib = u_curr_before_ib + weight_ocean * (u_curr_after_ib - u_curr_before_ib)
                 v_curr_ib = v_curr_before_ib + weight_ocean * (v_curr_after_ib - v_curr_before_ib)
 
@@ -1134,7 +1344,8 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                                                                                                             ice_albedo, Lf_ice, rho_ice, pot_temp_ib_list,
                                                                                                             salinity_ib_list, depth_curr_ib_interp, airT_ib,
                                                                                                             u_curr_ib, v_curr_ib, u_wind_ib, v_wind_ib,
-                                                                                                            iceberg_u, iceberg_v, Hs_ib, wave_pd_ib, iceberg_times_dt[i])
+                                                                                                            iceberg_u, iceberg_v, Hs_ib, wave_pd_ib,
+                                                                                                            iceberg_times_dt[i], siconc_ib)
                     iceberg_bathy_depth = bathy_interp([[iceberg_lat, iceberg_lon]])[0]
 
                     if iceberg_bathy_depth <= new_iceberg_draft:
@@ -1165,6 +1376,11 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
                     solution = solve_ivp(duv_dt, (0., iceberg_times_dt[i]), [iceberg_u, iceberg_v], method='BDF', t_eval=[0., iceberg_times_dt[i]])
                     iceberg_u_end = solution.y[0][-1]
                     iceberg_v_end = solution.y[1][-1]
+                    h_min = 660.9 / ((20e3) * np.exp(-20 * (1 - siconc_ib)))
+
+                    if siconc_ib >= 0.9 and sithick_ib >= h_min:
+                        iceberg_u_end = usi_ib
+                        iceberg_v_end = vsi_ib
                 else:
                     iceberg_u_end = 0.
                     iceberg_v_end = 0.

@@ -66,9 +66,6 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
         if np.any(np.isnan(wave_dir)) or np.any(np.isinf(wave_dir)) or np.any(~np.isreal(wave_dir)):
             wave_dir = wind_dir
 
-        if np.any(np.isnan(Hs)) or np.any(np.isinf(Hs)) or np.any(~np.isreal(Hs)) or Hs < 0 or siconc >= 0.9:
-            Hs = 0.001
-
         if siconc > 1:
             siconc = 1.
 
@@ -83,6 +80,9 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
             sithick = 0.
             usi = 0.
             vsi = 0.
+
+        if np.any(np.isnan(Hs)) or np.any(np.isinf(Hs)) or np.any(~np.isreal(Hs)) or Hs < 0 or siconc >= 0.9:
+            Hs = 0.001
 
         if (np.any(np.isnan(iceberg_u)) or np.any(np.isnan(iceberg_v)) or np.any(np.isinf(iceberg_u)) or np.any(np.isinf(iceberg_v))
                 or np.any(~np.isreal(iceberg_u)) or np.any(~np.isreal(iceberg_v))):
@@ -147,14 +147,20 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
         return ib_acc_E, ib_acc_N
 
     def iceberg_det(iceberg_length, iceberg_mass, solar_rad, ice_albedo, Lf_ice, rho_ice, water_temps, water_sals, water_depths, air_temp,
-                    u_curr, v_curr, u_wind, v_wind, iceberg_u, iceberg_v, Hs, wave_pd, time_dt):
+                    u_curr, v_curr, u_wind, v_wind, iceberg_u, iceberg_v, Hs, wave_pd, time_dt, siconc):
         water_temps = np.array(water_temps)
         water_sals = np.array(water_sals)
         water_depths = np.array(water_depths)
         water_temps[np.isnan(water_temps) | np.isinf(water_temps) | ~np.isreal(water_temps)] = 0.
         water_sals[np.isnan(water_sals) | np.isinf(water_sals) | ~np.isreal(water_sals)] = 33.
 
-        if np.any(np.isnan(Hs)) or np.any(np.isinf(Hs)) or np.any(~np.isreal(Hs)) or Hs < 0:
+        if siconc > 1:
+            siconc = 1.
+
+        if np.any(np.isnan(siconc)) or np.any(np.isinf(siconc)) or np.any(~np.isreal(siconc)) or siconc < 0:
+            siconc = 0.
+
+        if np.any(np.isnan(Hs)) or np.any(np.isinf(Hs)) or np.any(~np.isreal(Hs)) or Hs < 0 or siconc >= 0.9:
             Hs = 0.001
 
         if (np.any(np.isnan(iceberg_u)) or np.any(np.isnan(iceberg_v)) or np.any(np.isinf(iceberg_u)) or np.any(np.isinf(iceberg_v))
@@ -660,7 +666,7 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
                                                                                                     water_sals_ib_list, depth_curr_ib_interp,
                                                                                                     airT_ib, u_curr_ib, v_curr_ib, u_wind_ib,
                                                                                                     v_wind_ib, iceberg_u, iceberg_v, Hs_ib, wave_pd_ib,
-                                                                                                    iceberg_times_dt[i])
+                                                                                                    iceberg_times_dt[i], siconc_ib)
             iceberg_bathy_depth = bathy_interp([[iceberg_lat, iceberg_lon]])[0]
 
             if iceberg_bathy_depth <= new_iceberg_draft:
@@ -691,7 +697,6 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
             if siconc_ib >= 0.9 and sithick_ib >= h_min:
                 iceberg_u_end = usi_ib
                 iceberg_v_end = vsi_ib
-
         else:
             iceberg_u_end = 0.
             iceberg_v_end = 0.
