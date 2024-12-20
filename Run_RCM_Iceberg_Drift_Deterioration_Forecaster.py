@@ -5,7 +5,11 @@ import time
 import warnings
 warnings.simplefilter(action='ignore')
 
-# Script runtime: 11.84 minutes for 2 icebergs forecast to 24 hours.
+# Without sea ice forcing:
+# Script runtime: 13.13 minutes for 2 icebergs forecast to 24 hours.
+
+# With sea ice forcing:
+# Script runtime: 13.25 minutes for 2 icebergs forecast to 24 hours.
 
 start_time = time.time()
 
