@@ -27,7 +27,7 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
 
     def dist_bearing(Re, lat1, lat2, lon1, lon2):
         def arccot(x):
-            return np.pi / 2 - np.arctan(x)
+            return np.pi / 2. - np.arctan(x)
 
         lat1 = np.radians(lat1)
         lat2 = np.radians(lat2)
@@ -37,9 +37,9 @@ def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metd
         Az = np.degrees(arccot((np.cos(lat1) * np.tan(lat2) - np.sin(lat1) * np.cos(lon2 - lon1)) / np.sin(lon2 - lon1)))
 
         if Az < 0:
-            Az += 360
+            Az += 360.
         elif Az >= 360:
-            Az -= 360
+            Az -= 360.
 
         if lon1 == lon2:
             if lat1 > lat2:
