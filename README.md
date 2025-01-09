@@ -41,7 +41,7 @@ Author: Ian D. Turnbull
 
 Summary:
 
-The RCM_Iceberg_Drift_Deterioration_Forecaster.py Python script file contains a function called rcm_iceberg_drift_deterioration_forecaster and runs on a physics-based iceberg drift and deterioration model. The function takes the following inputs taken from a RADARSAT Constellation Mission (RCM) satellite image: a series of iceberg latitude/longitude positions (iceberg_lats0, iceberg_lons0), the date/time of the RCM image acquisition (rcm_datetime0), the iceberg lengths (iceberg_lengths0), its status as grounded or not (iceberg_grounded_statuses0), the iceberg identification numbers (iceberg_ids), the anticipated time of the next RCM image acquisition (next_rcm_time), and hours at which the metocean forecast data were issued, in string format and Universal Time Coordinated (UTC), for the air temperature and solar radiation, the winds and waves, and the ocean variables (hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean, respectively). The iceberg initial positions, waterline lengths, and grounded statuses should be passed to the function as either lists or numpy arrays. The function forecasts the icebergs’ new positions and waterline lengths at some user-specified time in the future assumed to align with the date/time of the next RCM image acquisition. The function will output hourly forecast iceberg latitude/longitude position and waterline lengths up to the next RCM image acquisition date/time. The final time step will be the remainder between the last hourly time step and the next RCM image acquisition date/time if it is less than one hour. This document lists the Python libraries needed to run the function, describes how the function works, lists its key operating assumptions, and provides an overview of the model’s performance on icebergs tracked in RCM imagery during 2023-2024.
+The RCM_Iceberg_Drift_Deterioration_Forecaster.py Python script file contains a function called rcm_iceberg_drift_deterioration_forecaster and runs on a physics-based iceberg drift and deterioration model. The function takes the following inputs taken from a RADARSAT Constellation Mission (RCM) satellite image: a series of iceberg latitude/longitude positions (iceberg_lats0, iceberg_lons0), the date/time of the RCM image acquisition (rcm_datetime0), the iceberg lengths (iceberg_lengths0), its status as grounded or not (iceberg_grounded_statuses0), the iceberg identification numbers (iceberg_ids), the anticipated time of the next RCM image acquisition (next_rcm_time), hours at which the metocean forecast data were issued, in string format and Universal Time Coordinated (UTC), for the air temperature and solar radiation, the winds and waves, and the ocean variables (hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean, respectively), and whether or not sea ice is present (si_toggle). The iceberg initial positions, waterline lengths, and grounded statuses should be passed to the function as either lists or numpy arrays. The function forecasts the icebergs’ new positions and waterline lengths at some user-specified time in the future assumed to align with the date/time of the next RCM image acquisition. The function will output hourly forecast iceberg latitude/longitude position and waterline lengths up to the next RCM image acquisition date/time. The final time step will be the remainder between the last hourly time step and the next RCM image acquisition date/time if it is less than one hour. This document lists the Python libraries needed to run the function, describes how the function works, lists its key operating assumptions, and provides an overview of the model’s performance on icebergs tracked in RCM imagery during 2023-2024.
 
 Depending on the iceberg drift forecast period and the number of icebergs to be forecast, assumed to be on the order of 12-24 hours between RCM image acquisitions, the function can take on the order of 20 minutes to complete drift and deterioration forecasts for a set of icebergs.
 
@@ -62,8 +62,11 @@ The rcm_iceberg_drift_deterioration_forecaster function requires the following i
 •	A set of iceberg latitude/longitude positions in array-like format (iceberg_lats0, iceberg_lons0 in degrees North and East, respectively),
 •	The date/time of the RCM image acquisition (rcm_datetime0),
 •	The initial iceberg waterline lengths (iceberg_lengths0) in array-like format,
-•	The icebergs’ initial statuses as grounded or not (iceberg_grounded_statuses0: these should be entered as a list or array of “grounded” or “not grounded”), and
-•	The anticipated time of the next RCM image acquisition (next_rcm_time).
+•	The icebergs’ initial statuses as grounded or not (iceberg_grounded_statuses0: these should be entered as a list or array of “grounded” or “not grounded”),
+•	The iceberg’s id numbers (iceberg_ids) for tracking purposes,
+•	The anticipated time of the next RCM image acquisition (next_rcm_time),
+•	The UTC hours at which the metocean forecasts were issued (hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean), and
+•	Whether or not sea is present (si_toggle=True or False).
 
 The iceberg waterline lengths are assumed to be in meters. The date/time of the RCM image acquisition (rcm_datetime0) and the anticipated date/time of the next RCM image acquisition (next_rcm_time) should be input as strings in numpy datetime64 format and UTC, e.g., for example: ‘2024-11-01T09:42:53.33’.
 
@@ -77,13 +80,14 @@ The iceberg waterline lengths are assumed to be in meters. The date/time of the 
 •	The fourth function is for numerically solving the iceberg acceleration integration to drift velocity, and
 •	The fifth function calculates the new iceberg waterline length, draft, sail cross-sectional area, and total mass after deterioration.
 
-The forces considered in the function for iceberg drift are the (e.g., see Kubat et al., 2005; and Eik, 2009):
+The forces considered in the function for iceberg drift are the (e.g., see Lichey and Hellmer, 2001; Kubat et al., 2005; and Eik, 2009):
 
 •	Air (wind) and water (ocean current) drags,
 •	Coriolis,
 •	Water pressure gradient,
-•	Sea surface tilt (horizontal gravitational), and
-•	Wave radiation.
+•	Sea surface tilt (horizontal gravitational),
+•	Wave radiation, and
+•	Sea ice.
 
 The forcings considered in the function for iceberg deterioration are the (e.g., see Kubat et al., 2007):
 
@@ -102,13 +106,13 @@ The forcings considered in the function for iceberg deterioration are the (e.g.,
 
 7.	Arrays are initialized for the hourly forecast iceberg latitude/longitude positions, drift velocities, waterline lengths, drafts, and masses.
 
-8.	The forecast times for wind, wave, ocean current, sea surface height, ocean potential temperature, ocean salinity, air temperature, and surface solar radiation data that fully overlap with the iceberg drift forecast period are determined.
+8.	The forecast times for wind, wave, ocean current, sea surface height, sea ice concentration, thickness, and velocity, ocean potential temperature, ocean salinity, air temperature, and surface solar radiation data that fully overlap with the iceberg drift forecast period are determined.
 
-9.	The ocean current, potential temperature, and salinity files are stripped down to only retain data within 30 grid points of the original iceberg position. At 5 km resolution, this represents around 150 km, which should be more than enough to cover iceberg drift over the next 12-24 hours. This parameter is the deg_radius set at the beginning of (but inside) the function and can be increased if needed. This step is performed to save significant processing time. Using the whole RIOPS grid for the ocean current and sea surface height files was found to greatly increase the function’s runtime to over an hour in many cases due to the more intensive interpolation processes on a larger grid, plus the extra time needed to compute the larger sea surface height gradient grids. The stripped-down forecast sea surface height gradients are also computed in this step and saved into their own netCDF files. These stripped-down files are placed in a temporary directory.
+9.	The ocean current, potential temperature, sea ice, and salinity files are stripped down to only retain data within 30 grid points of the original iceberg position. At 5 km resolution, this represents around 150 km, which should be more than enough to cover iceberg drift over the next 12-24 hours. This parameter is the deg_radius set at the beginning of (but inside) the function and can be increased if needed. This step is performed to save significant processing time. Using the whole RIOPS grid for the ocean current, sea ice, and sea surface height files was found to greatly increase the function’s runtime to over an hour in many cases due to the more intensive interpolation processes on a larger grid, plus the extra time needed to compute the larger sea surface height gradient grids. The stripped-down forecast sea surface height gradients are also computed in this step and saved into their own netCDF files. These stripped-down files are placed in a temporary directory.
 
-10.	The iceberg drift and deterioration forecast loop begins. At each time-step, the forecast wind, wave, ocean current, potential temperature, salinity, sea surface height gradient, air temperature, and surface solar radiation files are found that align with times just before and after the current iceberg forecast time, or that align exactly with the current iceberg forecast time if they exist.
+10.	The iceberg drift and deterioration forecast loop begins. At each time-step, the forecast wind, wave, ocean current, potential temperature, salinity, sea surface height gradient, sea ice concentration, thickness, and zonal and meridional velocity, air temperature, and surface solar radiation files are found that align with times just before and after the current iceberg forecast time, or that align exactly with the current iceberg forecast time if they exist.
 
-11.	The forecast wind velocity components, wave parameters, ocean current velocity components, potential temperatures, salinities, sea surface height gradient components, air temperatures, and surface solar radiation from each of the before and after files are spatially interpolated to the iceberg forecast position at the present time-step. Ocean current velocities, potential temperatures, and salinities are only processed to a depth equal to or just greater than the calculated iceberg draft. The ocean current velocities are then averaged over the draft depth of the iceberg. The linearly interpolated value of each metocean variable in time is then calculated for the present time-step. Wave variables are interpolated using nearest neighbor interpolation.
+11.	The forecast wind velocity components, wave parameters, ocean current velocity components, potential temperatures, salinities, sea surface height gradient components, sea ice concentrations, thicknesses, and zonal and meridional velocities, air temperatures, and surface solar radiation from each of the before and after files are spatially interpolated to the iceberg forecast position at the present time-step. Ocean current velocities, potential temperatures, and salinities are only processed to a depth equal to or just greater than the calculated iceberg draft. The ocean current velocities are then averaged over the draft depth of the iceberg. The linearly interpolated value of each metocean variable in time is then calculated for the present time-step. Wave variables are interpolated using nearest neighbor interpolation.
 
 12.	The iceberg deterioration between the present and next time-step is calculated. If an iceberg deteriorates completely, the iceberg mass, draft, sail area, and waterline length will be set to zero, and the iceberg drift will stop. A warning will print out if an iceberg is predicted to deteriorate to less than 40 m waterline length, as this iceberg may fall below the minimum spatial resolution of RCM imagery.
 
@@ -135,14 +139,9 @@ Key Operating Assumptions:
 
 5.	Iceberg keel cross-sectional areas are assumed to be rectangular.
 
-Model Performance:
-
-The model performance was assessed on RCM-tracked icebergs over the 2023-2024 seasons. A total of 340 individual iceberg displacements between RCM images were used. Historical winds and waves were obtained from the ERA5 reanalysis (Hersbach et al., 2023) and historical ocean currents, temperatures, salinities, and sea surface heights were obtained from the Hybrid Coordinate Ocean Model (HYCOM, 2024) reanalysis. Hourly observed iceberg positions were linearly interpolated between RCM observations. The average position error at 12 hours is 8.9 km and the average position error at 24 hours is 18.1 km. There were only 10 instances in the 2023-2024 data in which iceberg waterline length decreased between observations. The deterioration model tends to underestimate the iceberg deterioration. This is likely at least partly due to the resolution of the metocean forcing data being too coarse to capture the wave-induced calving events.
-
 References:
 
 Barker, A., Sayed, M., and Carrieres, T. (2004). “Determination of Iceberg Draft, Mass and Cross-Sectional Areas,” In Proceedings of the 14th International Offshore and Polar Engineering Conference (ISOPE), Toulon, France, May 23-28.
-
 Eik, K. (2009). “Iceberg drift modelling and validation of applied metocean hindcast data,” Cold Regions Science and Technology, vol. 57, pp. 67-90.
 
 GDPS. (2024). “Global Deterministic Prediction System (GDPS) data in GRIB2 format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_gdps/readme_gdps-datamart_en/, November 1, 2024.
@@ -156,5 +155,7 @@ HYCOM. (2024). “Hybrid Coordinate Ocean Model Global Ocean Forecast System (GO
 Kubat, I., Sayed, M., Savage, S.B., and Carrieres, T. (2005). “An Operational Model of Iceberg Drift,” International Journal of Offshore and Polar Engineering (IJOPE), vol. 15, no. 2, pp. 125-131.
 
 Kubat, I., Sayed, M., Savage, S., Carrieres, T., and Crocker, G. (2007). “An Operational Iceberg Deterioration Model,” Proceedings of the 16th International Offshore and Polar Engineering Conference (ISOPE), Lisbon, Portugal, July 1-6.
+
+Lichey, C., and Hellmer, H.H. (2001). “Modeling giant iceberg drift under the influence of sea ice in the Weddell Sea, Antarctica,” Journal of Glaciology, vol. 47, no. 158, pp. 452-460.
 
 RIOPS. (2024). “Regional Ice Ocean Prediction System (RIOPS) Data in NetCDF Format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_riops/readme_riops-datamart_en/, November 1, 2024.
