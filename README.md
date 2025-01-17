@@ -131,7 +131,7 @@ Key Operating Assumptions:
 
 1.	The bathymetric data file is assumed to be in netCDF format and contain three variables labelled “lat”, “lon”, and “elevation”. The elevation variable is assumed to be negative for water depth and have the dimensions latitude by longitude.
 
-2.	The next RCM image acquisition time input to the function must be within the next 3.5 days to remain within the forecast period for the ocean currents and sea surface heights.
+2.	The next RCM image acquisition time input to the function must be within the next 3.5 days (84 hours) from the earliest start time of the metocean forecast data to remain within the forecast period for the ocean currents and sea surface heights.
 
 3.	The iceberg drift velocities are initialized in the forecast at zero.
 
