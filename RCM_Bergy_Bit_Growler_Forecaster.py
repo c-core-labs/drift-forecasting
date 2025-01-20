@@ -325,25 +325,30 @@ def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, icebe
 
         return boundaries
 
-    def last_valid_length_stats(lengths, min_length):
+    def last_valid_length_stats(lengths, min_length, timeseries):
         length_stats = {}
 
         for iceberg_index in range(lengths.shape[1]):  # loop over icebergs (k)
             valid_lengths = []
+            latest_times = []
+
             for ens_member in range(lengths.shape[2]):  # loop over ensemble members (m)
-                # Find the last valid length
+                # Find the last valid length and corresponding time
                 for time_step in range(lengths.shape[0] - 1, -1, -1):  # loop over time steps (i) in reverse
                     if lengths[time_step, iceberg_index, ens_member] > min_length:
                         valid_lengths.append(lengths[time_step, iceberg_index, ens_member])
-                        break  # Exit the loop once we have the last valid length for that ensemble member
+                        latest_times.append(timeseries[time_step])
+                        break  # Exit once the last valid length is found for this ensemble member
 
             if valid_lengths:
-                # Save the min, max, and mean of the valid lengths for the iceberg
+                # Save stats and the latest time for this iceberg
                 length_stats[iceberg_index] = {'min': min(valid_lengths),
-                                               'max': max(valid_lengths),
-                                               'mean': np.mean(valid_lengths)}
+                    'max': max(valid_lengths),
+                    'mean': np.mean(valid_lengths),
+                    'latest_time': max(latest_times)}
             else:
-                length_stats[iceberg_index] = {'min': None, 'max': None, 'mean': None}
+                # No valid lengths found
+                length_stats[iceberg_index] = {'min': None, 'max': None, 'mean': None, 'latest_time': None}
 
         return length_stats
 
@@ -1495,7 +1500,7 @@ def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, icebe
         else:
             growler_bounds_dict[k] = np.empty((0, 2))
 
-    bergy_bit_length_final_stats = last_valid_length_stats(bergy_bit_lengths, min_length_bb)
-    growler_length_final_stats = last_valid_length_stats(growler_lengths, min_length_growler)
+    bergy_bit_length_final_stats = last_valid_length_stats(bergy_bit_lengths, min_length_bb, bergy_bit_growler_times)
+    growler_length_final_stats = last_valid_length_stats(growler_lengths, min_length_growler, bergy_bit_growler_times)
     return bergy_bit_bounds_dict, bergy_bit_length_final_stats, growler_bounds_dict, growler_length_final_stats
 
