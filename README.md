@@ -135,9 +135,7 @@ Key Operating Assumptions:
 
 3.	The iceberg drift velocities are initialized in the forecast at zero.
 
-4.	The icebergs are in open water and not in sea ice; the current version of the model does not include sea ice forcing on iceberg drift.
-
-5.	Iceberg keel cross-sectional areas are assumed to be rectangular.
+4.	Iceberg keel cross-sectional areas are assumed to be rectangular.
 
 References:
 
