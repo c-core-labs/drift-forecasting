@@ -157,3 +157,122 @@ Kubat, I., Sayed, M., Savage, S., Carrieres, T., and Crocker, G. (2007). “An O
 Lichey, C., and Hellmer, H.H. (2001). “Modeling giant iceberg drift under the influence of sea ice in the Weddell Sea, Antarctica,” Journal of Glaciology, vol. 47, no. 158, pp. 452-460.
 
 RIOPS. (2024). “Regional Ice Ocean Prediction System (RIOPS) Data in NetCDF Format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_riops/readme_riops-datamart_en/, November 1, 2024.
+
+Title: Documentation for RCM_Bergy_Bit_Growler_Forecaster.py
+Author: Ian D. Turnbull
+
+Summary:
+
+The RCM_Bergy_Bit_Growler_Forecaster.py Python script file contains a function called rcm_bergy_bit_growler_forecaster and runs on a physics-based ensemble-probabilistic iceberg drift and deterioration model. The function takes the following inputs taken from a RADARSAT Constellation Mission (RCM) satellite image: a series of iceberg latitude/longitude positions (iceberg_lats0, iceberg_lons0), the date/time of the RCM image acquisition (rcm_datetime0), the iceberg lengths (iceberg_lengths0), the iceberg identification numbers (iceberg_ids), the forecast end time (forecast_end_time), hours at which the metocean forecast data were issued, in string format and Universal Time Coordinated (UTC), for the air temperature and solar radiation, the winds and waves, and the ocean variables (hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean, respectively), and whether or not sea ice is present (si_toggle). The iceberg initial positions should be passed to the function as either lists or numpy arrays. The function assumes each iceberg will calve a bergy bit and a growler and forecasts a cone of uncertainty of possible maximum extents a bergy bit or growler could potentially drift from a given iceberg. The bergy bit is assumed to be 15 m waterline length and the growler 5 m waterline length, representing the maximum sizes of each. The function will output latitude-longitude polygons covering the maximum drift extents of the bergy bit and growler for each iceberg, and their final deteriorated waterline length statistics obtained from the ensemble of tracks (minimum, maximum, and mean). of the hourly forecast iceberg latitude/longitude position and waterline lengths up to the next RCM image acquisition date/time. The final time step will be the remainder between the last hourly time step and the forecast end time if it is less than one hour. This document lists the Python libraries needed to run the function, describes how the function works, and lists its key operating assumptions.
+
+Python Libraries Used in Current Version of the Function:
+
+scipy v1.13.1
+tempfile
+numpy v1.26.4
+netCDF4 v1.6.2
+gsw v3.6.19
+
+How the Function Works:
+
+The rcm_bergy_bit_growler_forecaster function requires the following inputs:
+
+•	The path to the bathymetric data file, assumed to be in NetCDF format (called gebco_2024.nc),
+•	The root path to the metocean forecast data files,
+•	A set of iceberg latitude/longitude positions in array-like format (iceberg_lats0, iceberg_lons0 in degrees North and East, respectively),
+•	The date/time of the RCM image acquisition (rcm_datetime0),
+•	The iceberg’s id numbers (iceberg_ids) for tracking purposes,
+•	The desired forecast end time (forecast_end_time),
+•	The UTC hours at which the metocean forecasts were issued (hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean), and
+•	Whether or not sea is present (si_toggle=True or False).
+
+The date/time of the RCM image acquisition (rcm_datetime0) and the forecast end time (forecast_end_time) should be input as strings in numpy datetime64 format and UTC, e.g., for example: ‘2024-11-01T09:42:53.33’.
+
+1.	The first lines of the function define some constants, including the density of ice, ice albedo, latent heat of fusion for ice, radius of the Earth, the Coriolis deflection angle, the minimum bergy bit/growler lengths to be considered as “fully deteriorated,” and parameters that define the probability density functions (pdfs) from which randomized errors in forecast wind and ocean current velocity and significant wave height will be drawn for the ensemble model. These parameters are defined according to Allison et al. (2014). The deg_radius constant defines how much of the grid for the ocean current, sea ice, and ocean potential temperature and salinity forecast files will be saved. It is currently set to deg_radius = 30, meaning that these grids will be saved for points within 30 latitude/longitude points of the southernmost, northernmost, easternmost, and westernmost initial positions for a set of icebergs. The original grids cover the whole North Atlantic region and have 5 km spatial resolution, so this constant ensures the grids will only be saved within about 150 km of the southernmost, northernmost, easternmost, and westernmost initial iceberg positions at the beginning of the drift forecast, more than enough to cover the region in which they could drift in the next 12-24 hours. This saves memory and processing time for the function.
+
+2.	Five nested functions are defined within the rcm_bergy_bit_growler_forecaster function:
+
+•	The first function calculates the latitude/longitude coordinate at a given distance and course from an initial latitude/longitude coordinate,
+•	The second function calculates the easterly and northerly iceberg drift velocity vector components,
+•	The third function calculates the new bergy bit/growler waterline length, draft, sail cross-sectional area, and total mass after deterioration,
+•	The fourth, fifth, and sixth functions calculate randomized errors for the forecast wind and ocean current speeds and directions and the significant wave heights,
+•	The seventh function computes the outer boundaries of the bergy bit/growler ensemble tracks, and
+•	The eighth function computes the final statistics of the bergy bit/growler ensemble modelled deteriorated lengths.
+
+The function for bergy bit/growler drift velocity is a simple linear summation of 2% of the wind velocity vector turned 20 to the right to account for the Coriolis deflection, and the ocean current velocity averaged over the calculated draft of the bergy bit or growler (e.g., see Wagner et al., 2017).
+
+The forcings considered in the function for bergy bit/growler deterioration are the (e.g., see Kubat et al., 2007):
+
+•	Surface (freeboard) melting due to solar radiation,
+•	Melting of the keel due to buoyant vertical convection,
+•	Melting of the keel and freeboard due to forced convection of water and air, respectively, and
+•	Calving due to wave erosion.
+
+3.	The rcm_datetime0 (the RCM image acquisition time) and forecast_end_time are ensured to be in numpy datetime64 format and the forecast start time for a set of icebergs passed to the function is set to the rcm_datetime0.
+
+4.	The function reads the bathymetric data file and interpolates the water depth at the iceberg location. If the calculated bergy bit/growler draft is equal to or greater than the water depth, the bergy bit/growler draft is reset to be one meter less than the water depth.
+
+5.	The bergy bit/growler draft is calculated as a function of the bergy bit/growler waterline length (15 m and 5 m, respectively) using the formulation obtained from analysis of C-CORE iceberg profile data. The bergy bit/growler mass and cross-sectional sail area are calculated as a function of waterline length from formulations given in Barker et al. (2004).
+
+6.	The bergy bit/growler drift forecast times are determined. The drift forecast is initialized at the RCM image acquisition date/time, and then hourly time-steps are used until the forecast end time is reached. The final time-step between the last hourly time-step and the forecast end time may be less than one hour.
+
+7.	Arrays are initialized for the hourly forecast bergy bit/growler latitude/longitude positions, drift velocities, waterline lengths, drafts, and masses.
+
+8.	The forecast times for wind, wave, ocean current, sea ice concentration, ocean potential temperature, ocean salinity, air temperature, and surface solar radiation data that fully overlap with the bergy bit/growler drift forecast period are determined.
+
+9.	The ocean current, potential temperature, sea ice, and salinity files are stripped down to only retain data within 30 grid points of the original iceberg position. At 5 km resolution, this represents around 150 km, which should be more than enough to cover bergy bit/growler drift over the next 84 hours. This parameter is the deg_radius set at the beginning of (but inside) the function and can be increased if needed. This step is performed to save significant processing time. Using the whole RIOPS grid for the ocean files was found to greatly increase the function’s runtime to over an hour in many cases due to the more intensive interpolation processes on a larger grid. These stripped-down files are placed in a temporary directory.
+
+10.	The bergy bit/growler drift and deterioration forecast loop begins. At each time-step, the forecast wind, wave, ocean current, potential temperature, salinity, sea ice concentration, air temperature, and surface solar radiation files are found that align with times just before and after the current bergy bit/growler forecast time, or that align exactly with the current bergy bit/growler forecast time if they exist.
+
+11.	The forecast wind velocity components, wave parameters, ocean current velocity components, potential temperatures, salinities, sea ice concentrations, air temperatures, and surface solar radiation from each of the before and after files are spatially interpolated to the bergy bit/growler forecast position at the present time-step. Ocean current velocities, potential temperatures, and salinities are only processed to a depth equal to or just greater than the calculated bergy bit/growler draft. The ocean current velocities are then averaged over the draft depth of the bergy bit/growler. The linearly interpolated value of each metocean variable in time is then calculated for the present time-step. Wave variables are interpolated using nearest neighbor interpolation.
+
+12.	The ensemble forecast loop is initiated and the randomized errors in the forecast wind and ocean current speeds and directions and significant wave heights are computed and added to their respective variables.
+
+13.	The bergy bit/growler deterioration between the present and next time-step is calculated. If a bergy bit/growler deteriorates completely, the bergy bit/growler mass, draft, sail area, and waterline length will be set to zero, and the bergy bit/growler drift will stop.
+
+14.	The bergy bit/growler zonal and meridional drift velocity components are computed at the present time-step. The bergy bit/growler displacement at the next time-step is then calculated using the Euler forward integration algorithm, integrated using drift velocities averaged between the present and next time-steps (e.g., trapezoidal integration).
+
+15.	At each time-step, the water depth is checked at the forecast bergy bit/growler location. If the water depth is equal to or less than the bergy bit/growler draft, the bergy bit/growler drift is halted at that point and the bergy bit’s/growler’s status is changed to grounded.
+
+16.	The outer boundaries of the bergy bit/growler ensemble drift tracks are determined along with their final deteriorated waterline length statistics.
+
+17.	The function will finally return the following variables:
+
+•	Dictionaries containing the bergy bit/growler boundaries, and
+•	Dictionaries containing the ensemble statistics of the bergy bit/growler final deteriorated waterline lengths and latest times at which they were reached in the ensemble output.
+
+Key Operating Assumptions:
+
+1.	The bathymetric data file is assumed to be in netCDF format and contain three variables labelled “lat”, “lon”, and “elevation”. The elevation variable is assumed to be negative for water depth and have the dimensions latitude by longitude.
+
+2.	The forecast end time input to the function must be within the next 3.5 days (84 hours) from the earliest start time of the metocean forecast data to remain within the forecast period for the ocean variables.
+
+3.	The bergy bit/growler drift velocities are initialized in the forecast at zero.
+
+4.	Bergy bit/growler keel cross-sectional areas are assumed to be rectangular.
+
+References:
+
+Allison, K., Crocker, G., Tran, H., and Carrieres, T. (2014). “An ensemble forecast model of iceberg drift,” Cold Regions Science and Technology, vol. 108, pp. 1-9.
+
+Barker, A., Sayed, M., and Carrieres, T. (2004). “Determination of Iceberg Draft, Mass and Cross-Sectional Areas,” In Proceedings of the 14th International Offshore and Polar Engineering Conference (ISOPE), Toulon, France, May 23-28.
+
+Eik, K. (2009). “Iceberg drift modelling and validation of applied metocean hindcast data,” Cold Regions Science and Technology, vol. 57, pp. 67-90.
+
+GDPS. (2024). “Global Deterministic Prediction System (GDPS) data in GRIB2 format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_gdps/readme_gdps-datamart_en/, November 1, 2024.
+
+GDWPS. (2024). “Global Deterministic Wave Prediction System (GDWPS) data in GRIB2 format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_gdwps/readme_gdwps-datamart_en/, November 1, 2024.
+
+Hersbach, H., Bell, B., Berrisford, P., Biavati, G., Horányi, A., Muñoz Sabater, J., Nicolas, J., Peubey, C., Radu, R., Rozum, I., Schepers, D., Simmons, A., Soci, C., Dee, D., and Thépaut, J-N. (2023). “ERA5 hourly data on single levels from 1940 to present,” Copernicus Climate Change Service (C3S) Climate Data Store (CDS), DOI: 10.24381/cds.adbb2d47 (Accessed on November 18, 2024).
+
+HYCOM. (2024). “Hybrid Coordinate Ocean Model Global Ocean Forecast System (GOFS) 3.1,” Accessed on the World Wide Web at: https://www.hycom.org/dataserver/gofs-3pt1/analysis, November 18, 2024.
+
+Kubat, I., Sayed, M., Savage, S.B., and Carrieres, T. (2005). “An Operational Model of Iceberg Drift,” International Journal of Offshore and Polar Engineering (IJOPE), vol. 15, no. 2, pp. 125-131.
+
+Kubat, I., Sayed, M., Savage, S., Carrieres, T., and Crocker, G. (2007). “An Operational Iceberg Deterioration Model,” Proceedings of the 16th International Offshore and Polar Engineering Conference (ISOPE), Lisbon, Portugal, July 1-6.
+
+Lichey, C., and Hellmer, H.H. (2001). “Modeling giant iceberg drift under the influence of sea ice in the Weddell Sea, Antarctica,” Journal of Glaciology, vol. 47, no. 158, pp. 452-460.
+
+RIOPS. (2024). “Regional Ice Ocean Prediction System (RIOPS) Data in NetCDF Format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_riops/readme_riops-datamart_en/, November 1, 2024.
+
+Wagner, T.J.W., Dell, R.W., and Eisenman, I. (2017). “An Analytical Model of Iceberg Drift,” Journal of Physical Oceanography, vol. 47, pp. 1,605-1,616.
