@@ -6,6 +6,9 @@ import time
 import warnings
 warnings.simplefilter(action='ignore')
 
+# With sea ice forcing:
+# Script runtime: 2638.5 minutes (43.975 hours) for 2 icebergs forecast to 84 hours with 250 ensemble members.
+
 start_time = time.time()
 
 iceberg_lats0 = [47.5, 47.5]
