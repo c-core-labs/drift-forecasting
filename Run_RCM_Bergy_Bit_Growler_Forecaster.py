@@ -17,9 +17,9 @@ iceberg_lats0 = [47.5]
 iceberg_lons0 = [-46.5]
 # rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc))  # - np.timedelta64(12, 'h')
 # rcm_datetime0 = np.datetime64('2024-12-20T16:46:47.683976')
-rcm_datetime0 = np.datetime64('2024-12-20T12:00:00')
+rcm_datetime0 = np.datetime64('2024-12-20T00:00:00')
 # rcm_datetime0 = np.datetime64('2024-12-09T18:01:00')
-forecast_end_time = rcm_datetime0 + np.timedelta64(1, 'h') # + np.timedelta64(23, 'm')
+forecast_end_time = rcm_datetime0 + np.timedelta64(84, 'h') # + np.timedelta64(23, 'm')
 # forecast_end_time = np.datetime64('2024-12-20T00:00:00') + np.timedelta64(84, 'h')
 # iceberg_ids = [0, 1]
 iceberg_ids = [0]
@@ -85,11 +85,14 @@ for k, boundary in growler_bounds_dict.items():
                  linewidth=2,
                  c=colors[k % len(colors)])
 
+plt.scatter(iceberg_lons0, iceberg_lats0, c="red", s=100, label="Iceberg Initial Positions", edgecolor="black")
+
 # Correctly label the axes
 plt.xlabel("Longitude (°E)")
 plt.ylabel("Latitude (°N)")
 plt.title("Outer Boundaries of Bergy Bits and Growlers", fontweight='bold', fontsize=10)
 plt.legend()
 plt.grid(True)
+plt.savefig("bergy_bit_growler_outer_boundaries_plot.png", dpi=300, bbox_inches="tight")
 plt.show()
 
