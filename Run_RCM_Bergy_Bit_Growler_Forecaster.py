@@ -7,7 +7,7 @@ import warnings
 warnings.simplefilter(action='ignore')
 
 # With sea ice forcing:
-# Script runtime: 2638.5 minutes (43.975 hours) for 2 icebergs forecast to 84 hours with 250 ensemble members.
+# Script runtime: 2638.5 minutes (43.975 hours) for 2 icebergs forecast to 72 hours with 250 ensemble members.
 
 start_time = time.time()
 
@@ -17,9 +17,9 @@ iceberg_lats0 = [47.5]
 iceberg_lons0 = [-46.5]
 # rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc))  # - np.timedelta64(12, 'h')
 # rcm_datetime0 = np.datetime64('2024-12-20T16:46:47.683976')
-rcm_datetime0 = np.datetime64('2024-12-20T00:00:00')
+rcm_datetime0 = np.datetime64('2024-12-20T12:00:00')
 # rcm_datetime0 = np.datetime64('2024-12-09T18:01:00')
-forecast_end_time = rcm_datetime0 + np.timedelta64(84, 'h') # + np.timedelta64(23, 'm')
+forecast_end_time = rcm_datetime0 + np.timedelta64(72, 'h') # + np.timedelta64(23, 'm')
 # forecast_end_time = np.datetime64('2024-12-20T00:00:00') + np.timedelta64(84, 'h')
 # iceberg_ids = [0, 1]
 iceberg_ids = [0]
