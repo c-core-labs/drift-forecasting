@@ -2,11 +2,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import numpy as np
 from observation import Observation
-import grounded
-import leeway
-import highResML
-import lowResML
-import dynamic
 
 # Implementation of Strategy pattern
 class Context():
@@ -41,16 +36,20 @@ class Strategy(ABC):
 
 # ML model
 class HighResML(Strategy):
+    import highResML
+
     def forecast(self, obs: Observation, t1: np.datetime64 ) -> (np.array, np.array, np.array):
-       return highResML.forecast(obs, t1)
+       return self.highResML.forecast(obs, t1)
 
     def metadata(self):
         return "High-resolution ML forecasting algorithm"
 
 # ML model
 class LowResML(Strategy):
+    import lowResML
+
     def forecast(self, obs: Observation, t1: np.datetime64 ) -> (np.array, np.array, np.array):
-       return lowResML.forecast(obs, t1)
+       return self.lowResML.forecast(obs, t1)
 
     def metadata(self):
         return "Low-resolution ML forecasting algorithm"
@@ -58,8 +57,10 @@ class LowResML(Strategy):
 
 # The grounded model
 class Grounded(Strategy):
+    import grounded
+
     def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
-        return dynamic.forecast(obs,t1)
+        return self.grounded.forecast(obs,t1)
 
     def metadata(self):
         return "Iceberg does not move"
@@ -67,16 +68,20 @@ class Grounded(Strategy):
 
 # The leeway model
 class Leeway(Strategy):
+    import leeway
+
     def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
-        return leeway.forecast(obs,t1)
+        return self.leeway.forecast(obs,t1)
 
     def metadata(self):
         return "Leeway drift model"
 
 # The dynamic model
 class Dynamic(Strategy):
+    import dynamic
+
     def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
-        return leeway.forecast(obs,t1)
+        return self.dynamic.forecast(obs,t1)
 
     def metadata(self):
         return "Dynamic drift model"

@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import xarray as xr
 from scipy.interpolate import RegularGridInterpolator
 
@@ -13,8 +12,9 @@ def get_limits(t, lat, lon):
 
     return [t1,t2, min_lat,max_lat,min_lon,max_lon]
 
-def get_global_interpolators():
-    url = "../pull_data/CFSRv2/2023.nc"
+def get_global_interpolators(year: int):
+
+    url = "../pull_data/CFSRv2/" + str(year)+".nc"
 
     ds = xr.open_dataset(url)
 

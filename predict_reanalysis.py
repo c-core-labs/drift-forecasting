@@ -132,7 +132,3 @@ ax[1].set_ylabel(r"$\epsilon$")
 
 ax[1].grid()
 plt.show()
-
-
-
-

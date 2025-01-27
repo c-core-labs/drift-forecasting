@@ -6,6 +6,7 @@ from observation import Observation
 from datetime import datetime
 from catboost import MultiTargetCustomMetric, MultiTargetCustomObjective
 import sys
+import re
 
 nHours = 48
 R = 6381000
@@ -153,7 +154,6 @@ def read_shapefile(fname):
             observations = np.append(observations,Observation(lat,lon,time,l, grounded=False))
         else:
             observations = np.append(observations, Observation(lat, lon, time, l, grounded=True))
-            print(fname+str(time))
             print("Grounded: " + p.record['Grounded'], end=" ")
             print("Notes: " + p.record['Notes'])
 
@@ -244,3 +244,28 @@ class DimensionlessErrorMetric(MultiTargetCustomMetric):
 
         return error_sum, weight_sum
 
+
+def read_product_shapefile(fname):
+    observations = np.empty(0, dtype=Observation)
+
+    sf = shapefile.Reader(fname)
+    pattern = r'\d{8}_\d{6}'
+
+    match = re.search(pattern, fname)
+    if match:
+        #time = np.datetime64(datetime.strptime(match.group(0), "%Y%m%d_%H%M%S")).astype('datetime64[s]')
+        time = np.datetime64('now')
+        print("Acquisition time: " + str(time))
+    else:
+        print('Can not read date from the shapefile name.')
+
+
+    for p in sf.shapeRecords():
+        if p.record['Class'] == "ICEBERG":
+            l = p.record['WtrLin']
+            lat = p.shape.points[0][1]
+            lon = p.shape.points[0][0]
+            observations = np.append(observations,Observation(lat,lon,time,l, grounded=False))
+
+    print("Total iceberg targets: " + str(observations.size))
+    return observations

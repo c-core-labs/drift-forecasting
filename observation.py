@@ -4,6 +4,7 @@ import numpy as np
 # a single observation of an iceberg
 @dataclass
 class Observation:
+    id: str
     lat: float
     lon: float
     time: np.datetime64
@@ -13,7 +14,8 @@ class Observation:
     in_tow: bool
     grounded: bool
 
-    def __init__(self, lat, lon, time, length = 100, grounded = False, in_tow = False):
+    def __init__(self, lat, lon, time, length = 100, grounded = False, in_tow = False, id = "0000"):
+        self.id = id
         self.lat = lat
         self.lon = lon
         self.time = time

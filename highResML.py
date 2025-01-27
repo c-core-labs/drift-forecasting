@@ -1,9 +1,8 @@
 import numpy as np
 from observation import Observation
 from catboost import Pool, CatBoostRegressor
-import pull_cfsr_v2, pull_ora5
+import pull_ora5, pull_era5
 from scipy import integrate
-import matplotlib.pyplot as plt
 
 model = CatBoostRegressor()
 model.load_model("relative_explicit")
@@ -33,7 +32,7 @@ def forecast(obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.arr
     uw = np.full((tint.size,2), [0.0,0.0])
 
     [fuw, fvw] = pull_ora5.get_interpolators(t0, t1, obs.depth)
-    [fua, fva] = pull_cfsr_v2.get_global_interpolators()
+    [fua, fva] = pull_era5.get_global_interpolators(t0)
 
     l = obs.length
     alpha = get_alpha(obs.lat)
@@ -55,7 +54,9 @@ def forecast(obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.arr
 
     i = 0
     while (i<tint.size-1):
+
         p = (tint[i+1], latint[i], lonint[i])       # this where it's not so implicit
+
         va = np.squeeze([fua(p), fva(p)])
 
         uw[i+1,:] = np.squeeze([fuw(p), fvw(p)])

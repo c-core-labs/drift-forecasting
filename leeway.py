@@ -18,10 +18,10 @@ def forecast(obs: Observation, t1: np.datetime64 ) -> (np.array, np.array, np.ar
     ui = np.full((tint.size),0.0)
     vi = np.full((tint.size),0.0)
 
-    [fuw,fvw] = pull_ora5.get_interpolators(obs.time,t1,obs.depth)
-    [fua,fva] = pull_cfsr_v2.get_global_interpolators()
+    [fuw,fvw] = pull_ora5.get_interpolators(t0,t1,obs.depth)
+    [fua,fva] = pull_cfsr_v2.get_global_interpolators(int(str(t0.astype('datetime64[Y]'))))
 
-    alpha = 0.014
+    alpha = 0.017
 
     # Get interpolators from forecast
     for i,t in enumerate(tint):
