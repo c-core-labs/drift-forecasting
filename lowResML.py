@@ -2,8 +2,7 @@ import numpy as np
 from numpy.ma.core import cumsum
 
 from observation import Observation
-import pull_ora5, pull_data.pull_era5
-import pull_cfsr_v2
+import pull_ora5, pull_era5
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
@@ -35,8 +34,8 @@ def forecast(obs: Observation, t1: np.datetime64 ) -> (np.array, np.array, np.ar
     lon0 = obs.lon
     t0 = obs.time
 
-    [fuw, fvw] = pull_ora5.get_interpolators(t0, t1 + np.timedelta64(3600, 's'), obs.depth)
-    [fua, fva] = pull_data.pull_era5.get_global_interpolators(t0)
+    [fuw, fvw] = pull_ora5.get_interpolators(t0, t1, obs.depth)
+    [fua, fva] = pull_era5.get_global_interpolators(t0)
 
     lat = lat0
     lon = lon0

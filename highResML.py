@@ -17,7 +17,6 @@ def get_new_velocity(unow, uold, psi, alpha):
     b = psi + 4 * unow - uold
     return np.linalg.solve(a, b)
 
-
 # The High-res ML model
 def forecast(obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
     lat0 = obs.lat
@@ -64,22 +63,7 @@ def forecast(obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.arr
 
         if np.isnan(fuw(p)):
             print('potential grounding')
-            x = Pool([np.hstack((uold, unow, va, uw[i + 1, :], l))])
-            psi = model.predict(x)[0]
-
-            temp = get_new_velocity(unow, uold, psi, alpha)
-            u[i + 1] = temp
-
-            uold = unow
-            unow = 0.5*temp - 0.5*uw[i+1]
-
-            displacement = integrate.trapezoid(0.5*(u[:i + 2] + uw[:i + 2]), dx=3600, axis=0)
-
-            latint[i + 1] = latint[0] + displacement[1] * 180.0 / np.pi / 6381000.0
-            lonint[i + 1] = lonint[0] + displacement[0] * 180.0 / np.pi / 6381000.0 / np.cos(latint[0] * np.pi / 180.0)
-
-            #u[i+1] = [0, 0]
-            #latint[i+1], lonint[i+1] = latint[i], lonint[i]
+            break
         else:
             x = Pool([np.hstack((uold, unow, va, uw[i+1,:], l))])
             psi = model.predict(x)[0]
