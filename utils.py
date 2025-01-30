@@ -8,6 +8,7 @@ from catboost import MultiTargetCustomMetric, MultiTargetCustomObjective
 import sys
 import re
 import xarray as xr
+import numpy.typing as npt
 
 nHours = 48
 R = 6381000
@@ -246,7 +247,7 @@ class DimensionlessErrorMetric(MultiTargetCustomMetric):
         return error_sum, weight_sum
 
 
-def read_product_shapefile(fname):
+def read_product_shapefile(fname) -> npt.NDArray[Observation]:
     observations = np.empty(0, dtype=Observation)
 
     sf = shapefile.Reader(fname)
@@ -270,6 +271,25 @@ def read_product_shapefile(fname):
 
     print("Total iceberg targets: " + str(observations.size))
     return observations
+
+def check_groundings(observations):
+    fname = './bathymetry/gebco_2024_n60.0_s45.0_w-60.0_e-45.0.nc'
+    # Get dimensions first
+    ds = xr.open_dataset(fname, decode_cf=False)
+
+    lat = ds.variables['lat'].to_numpy()
+    lon = ds.variables['lon'].to_numpy()
+    elevation = ds.variables['elevation'].to_numpy()
+    f_depth = interpolate.RegularGridInterpolator((lat, lon), elevation, fill_value=0)
+
+    grounded_flags = []
+    for o in observations:
+        if o.depth > -f_depth([o.lat,o.lon]):
+            grounded_flags.append(True)
+        else:
+            grounded_flags.append(False)
+
+    return np.array(grounded_flags)
 
 def check_groundings(observations):
     fname = './bathymetry/gebco_2024_n60.0_s45.0_w-60.0_e-45.0.nc'

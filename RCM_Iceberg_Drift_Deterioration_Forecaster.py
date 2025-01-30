@@ -5,10 +5,23 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import netCDF4 as nc
 import gsw
+from observation import Observation
 
-def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metdata, iceberg_lats0, iceberg_lons0, iceberg_lengths0,
-                                               iceberg_grounded_statuses0, iceberg_ids, rcm_datetime0, next_rcm_time,
-                                               hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean, si_toggle):
+#def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metdata, iceberg_lats0, iceberg_lons0, iceberg_lengths0,
+#                                               iceberg_grounded_statuses0, iceberg_ids, rcm_datetime0, next_rcm_time,
+#                                               hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean, si_toggle):
+
+si_toggle = False
+
+# t1 = forecast horizon time == next_rcm_time
+def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime64s) -> (np.array, np.array, np.array):
+
+    lat0 = obs.lat
+    lon0 = obs.lon
+    t0 = obs.time
+    ib_length = obs.length
+    ib_id = obs.id
+
     deg_radius = 30
     g = 9.80665
     rho_water = 1023.6

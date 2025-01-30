@@ -33,8 +33,8 @@ def get_global_interpolators(t0: np.datetime64):
     step = ds.variables['step'][:].to_numpy().astype('timedelta64[ns]')
     lat = ds.variables['latitude'][:].to_numpy()
     lon = ds.variables['longitude'][:].to_numpy()
-    u = ds.variables['10u'].to_numpy()#*0.001953125
-    v = ds.variables['10u'].to_numpy()#*0.001953125
+    u = ds.variables['10u'].to_numpy()
+    v = ds.variables['10u'].to_numpy()
 
     refdate = str(ds.attrs['date'])
     reftime = ds.attrs['time']
@@ -48,5 +48,5 @@ def get_global_interpolators(t0: np.datetime64):
     return [FUA, FVA]
 
 #pull_data_new()
-get_global_interpolators(np.datetime64('now'))
+#get_global_interpolators(np.datetime64('now'))
 

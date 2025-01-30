@@ -62,7 +62,7 @@ def forecast(obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.arr
 
 
         if np.isnan(fuw(p)):
-            print('potential grounding')
+            raise Exception("Potential grounding")
             break
         else:
             x = Pool([np.hstack((uold, unow, va, uw[i+1,:], l))])

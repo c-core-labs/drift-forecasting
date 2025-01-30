@@ -89,6 +89,3 @@ def get_interpolators(t0: np.datetime64, t1: np.datetime64, d: float):
     fvw = RegularGridInterpolator((t.astype('datetime64[s]').astype(float), lat, lon), v, fill_value = 0)
 
     return [fuw, fvw]
-
-#pull_data_operational(np.datetime64('now'))
-#get_interpolators(np.datetime64('now'), np.datetime64('now')+np.timedelta64(2,'D'), 100.0)

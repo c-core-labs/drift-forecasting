@@ -1,25 +1,30 @@
 import pydrift
 import matplotlib.pyplot as plt
 import utils
-from glob import glob
 import numpy as np
 from observation import Observation
 
 plt.rcParams['text.usetex'] = True
 
-observations = utils.read_product_shapefile('./input/20240429_094938_RCM_Shapefiles/20240429_094938_RCM_Targets.shp')
+input_fname = './input/20240417_094938_RCM_Targets/20240417_094938_RCM_Targets.shp'
+output_fname = './output/example.shp'
+
+observations = utils.read_product_shapefile(input_fname)
+grounded = utils.check_groundings(observations)
+print("Grounded: " + str(sum(grounded)) + " / " + str(len(grounded)))
+
+predictions = []
 
 model = pydrift.HighResML()
 context = pydrift.Context(model)
 
-predictions = []
-
-for o in observations:
+for o in observations[~grounded]:
     try:
         t, lat, lon = context.forecast(o, o.time + np.timedelta64(48, 'h'))
+        plt.plot(lon, lat, '-r.')
         predictions.append((lat, lon))
     except Exception as e:
-        # plt.clf()
         print("Error: " + e.__str__() + "\n")
 
-utils.write_shapefile(predictions, './output/example.shp')
+plt.show()
+utils.write_shapefile(predictions, output_fname)

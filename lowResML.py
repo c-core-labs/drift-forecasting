@@ -61,7 +61,7 @@ def forecast(obs: Observation, t1: np.datetime64 ) -> (np.array, np.array, np.ar
         l = obs.length * np.ones_like(uw)
 
         if np.any(np.isnan(ua)) | np.any(np.isnan(uw)):
-            raise Exception("No current or wind data available")
+            raise Exception("Potential grounding")
 
         temp = (l / 200.0, uw, vw, ua, va)
 

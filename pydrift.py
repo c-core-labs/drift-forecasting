@@ -19,7 +19,7 @@ class Context():
         print(strategy.metadata())
         self._strategy = strategy
 
-    def forecast(self,obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
+    def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
         result = self._strategy.forecast(obs,t1)
         return result
 
@@ -27,7 +27,7 @@ class Context():
 class Strategy(ABC):
 
     @abstractmethod
-    def forecast(self,observation: Observation):
+    def forecast(self, observation: Observation):
         pass
 
     @abstractmethod
