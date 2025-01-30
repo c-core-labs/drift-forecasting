@@ -4,24 +4,11 @@ from scipy.integrate import solve_ivp
 from tempfile import TemporaryDirectory
 import numpy as np
 import netCDF4 as nc
+import os
 import gsw
-from observation import Observation
+from observations import Observations
 
-#def rcm_iceberg_drift_deterioration_forecaster(bathy_data_path, rootpath_to_metdata, iceberg_lats0, iceberg_lons0, iceberg_lengths0,
-#                                               iceberg_grounded_statuses0, iceberg_ids, rcm_datetime0, next_rcm_time,
-#                                               hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean, si_toggle):
-
-si_toggle = False
-
-# t1 = forecast horizon time == next_rcm_time
-def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime64s) -> (np.array, np.array, np.array):
-
-    lat0 = obs.lat
-    lon0 = obs.lon
-    t0 = obs.time
-    ib_length = obs.length
-    ib_id = obs.id
-
+def rcm_iceberg_drift_deterioration_forecaster(obs: Observations, t1: np.datetime64, si_toggle):
     deg_radius = 30
     g = 9.80665
     rho_water = 1023.6
@@ -37,6 +24,15 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime
     rho_si = 875.
     am = 0.5
     Re = 6371e3
+    bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
+    rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
+    iceberg_lats0 = obs.lat
+    iceberg_lons0 = obs.lon
+    rcm_datetime0 = obs.time
+    iceberg_lengths0 = obs.length
+    iceberg_ids = obs.id
+    iceberg_grounded_statuses0 = obs.grounded
+    next_rcm_time = t1
 
     def dist_bearing(Re, lat1, lat2, lon1, lon2):
         def arccot(x):
@@ -362,7 +358,7 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime
     iceberg_lats0 = np.array(iceberg_lats0)
     iceberg_lons0 = np.array(iceberg_lons0)
     iceberg_lengths0 = np.array(iceberg_lengths0)
-    iceberg_grounded_statuses0 = [1 if status == 'grounded' else 0 for status in iceberg_grounded_statuses0]
+    iceberg_grounded_statuses0 = [1 if status == True else 0 for status in iceberg_grounded_statuses0]
     iceberg_grounded_statuses0 = np.array(iceberg_grounded_statuses0)
 
     iceberg_drafts0 = np.empty((len(iceberg_lats0),))
@@ -419,6 +415,21 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime
     forecast_times_wind_waves = []
     forecast_times_ocean = []
     forecast_times_airT_sw_rad = []
+
+    directory = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/'
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    file = files[0]
+    hour_utc_str_ocean = file[9:11]
+
+    directory = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/'
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    file = files[0]
+    hour_utc_str_wind_waves = file[9:11]
+
+    directory = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/'
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    file = files[0]
+    hour_utc_str_airT_sw_rad = file[-10:-8]
 
     forecast_start_time_wind_waves = np.datetime64(dirname_wind_waves + 'T' + hour_utc_str_wind_waves + ':00:00')
     forecast_start_time_ocean = np.datetime64(dirname_ocean + 'T' + hour_utc_str_ocean + ':00:00')
@@ -1432,5 +1443,5 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime
 
     iceberg_times = np.array(iceberg_times)
     iceberg_times = iceberg_times.astype(str).tolist()
-    return iceberg_lats, iceberg_lons, iceberg_times, iceberg_lengths, iceberg_grounded_statuses
+    return iceberg_times, iceberg_lats, iceberg_lons, iceberg_lengths, iceberg_grounded_statuses
 
