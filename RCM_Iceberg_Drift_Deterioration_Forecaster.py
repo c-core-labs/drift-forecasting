@@ -6,10 +6,10 @@ import numpy as np
 import netCDF4 as nc
 import os
 import gsw
-from observations import Observations
+from observation import Observation
 
-def rcm_iceberg_drift_deterioration_forecaster(obs: Observations, t1: np.datetime64, si_toggle):
-    deg_radius = 30
+def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime64, si_toggle):
+    deg_radius = 10
     g = 9.80665
     rho_water = 1023.6
     rho_air = 1.225
@@ -33,6 +33,11 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observations, t1: np.datetim
     iceberg_ids = obs.id
     iceberg_grounded_statuses0 = obs.grounded
     next_rcm_time = t1
+    iceberg_lats0 = iceberg_lats0 if isinstance(iceberg_lats0, list) else [iceberg_lats0]
+    iceberg_lons0 = iceberg_lons0 if isinstance(iceberg_lons0, list) else [iceberg_lons0]
+    iceberg_lengths0 = iceberg_lengths0 if isinstance(iceberg_lengths0, list) else [iceberg_lengths0]
+    iceberg_ids = iceberg_ids if isinstance(iceberg_ids, list) else [iceberg_ids]
+    iceberg_grounded_statuses0 = iceberg_grounded_statuses0 if isinstance(iceberg_grounded_statuses0, list) else [iceberg_grounded_statuses0]
 
     def dist_bearing(Re, lat1, lat2, lon1, lon2):
         def arccot(x):
@@ -1443,5 +1448,9 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observations, t1: np.datetim
 
     iceberg_times = np.array(iceberg_times)
     iceberg_times = iceberg_times.astype(str).tolist()
+    iceberg_lats = np.squeeze(iceberg_lats)
+    iceberg_lons = np.squeeze(iceberg_lons)
+    iceberg_lengths = np.squeeze(iceberg_lengths)
+    iceberg_grounded_statuses = np.squeeze(iceberg_grounded_statuses)
     return iceberg_times, iceberg_lats, iceberg_lons, iceberg_lengths, iceberg_grounded_statuses
 
