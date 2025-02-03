@@ -7,9 +7,10 @@ The Get_RCM_Iceberg_Metocean_Data.py Python script downloads the latest availabl
 
 Python Libraries Used in Current Version of the Script:
 
-subprocess
 numpy v1.26.4
 requests v2.32.3
+xarray v2023.6.0
+cfgrib v0.9.15.0
 os
 
 How the Script Works:
@@ -17,7 +18,6 @@ How the Script Works:
 The script requires only the following four inputs:
 
 •	The root path to be created to store the metocean data (rootpath_to_metdata),
-•	The path to the wgrib tool (wgrib_path) to convert grib2 files to NetCDF,
 •	The number of forecast hours to be obtained (forecast_hours):
 o	This must be at least 3 and not more than 84 since the air temperature and solar radiation data are provided at 3-hour intervals and the ocean data are provided out to 84 hours (3.5 days), and
 •	Whether or not forecast sea ice data should be downloaded (si_toggle=True or False).
@@ -26,7 +26,7 @@ o	This must be at least 3 and not more than 84 since the air temperature and sol
 
 2.	The script checks for the latest available metocean forecast data from each of the three models. Air temperature and solar radiation data are obtained from the Environment and Climate Change Canada (ECCC) Global Deterministic Prediction System (GDPS) which as a 15-km and three-hourly spatial and temporal resolution, respectively. Forecasts are issued twice daily at 00:00 and 12:00 Universal Time Coordinated (UTC). Data for significant wave height, wave direction, mean wave period, and wind velocity are obtained from the ECCC Global Deterministic Wave Prediction System (GDWPS) which as a 25-km and hourly spatial and temporal resolution, respectively. Forecasts are issued twice daily at 00:00 and 12:00 UTC. Data for ocean current velocity, potential temperature, salinity, sea surface height, and sea ice concentration, thickness, and zonal and meridional velocity are obtained from the Fisheries and Oceans Canada (DFO) Regional Ice Ocean Prediction System (RIOPS) which has a 5-km and hourly spatial and temporal resolution, respectively. Forecasts are issued four times daily at 00:00, 06:00, 12:00, and 18:00 UTC.
 
-3.	The grib2 files for the atmospheric, wave, and wind data are converted to NetCDF format using the wgrib tool. The RIOPS ocean data are already in NetCDF format.
+3.	The grib2 files for the atmospheric, wave, and wind data are converted to NetCDF format. The RIOPS ocean data are already in NetCDF format.
 
 References:
 
