@@ -6,11 +6,13 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import netCDF4 as nc
 import gsw
+import os
+from observations import Observations
+# from observation import Observation
 
-def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, iceberg_lats0, iceberg_lons0, iceberg_ids, rcm_datetime0,
-                                     forecast_end_time, hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves, hour_utc_str_ocean, si_toggle):
+def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_toggle):
     deg_radius = 30
-    ens_num = 250
+    ens_num = 10
     rho_ice = 910.
     ice_albedo = 0.1
     Lf_ice = 3.36e5
@@ -35,6 +37,16 @@ def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, icebe
     std_dev_Hs = 0.52 # m
     min_length_bb = 0
     min_length_growler = 0
+    bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
+    rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
+    iceberg_lats0 = obs.lat
+    iceberg_lons0 = obs.lon
+    rcm_datetime0 = obs.time
+    iceberg_ids = obs.id
+    forecast_end_time = t1
+    iceberg_lats0 = iceberg_lats0 if isinstance(iceberg_lats0, list) else [iceberg_lats0]
+    iceberg_lons0 = iceberg_lons0 if isinstance(iceberg_lons0, list) else [iceberg_lons0]
+    iceberg_ids = iceberg_ids if isinstance(iceberg_ids, list) else [iceberg_ids]
 
     def dist_course(Re, lat1, lon1, dist, course):
         lat1 = np.radians(lat1)
@@ -226,8 +238,8 @@ def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, icebe
             new_iceberg_mass = 0.
 
         new_iceberg_length = np.cbrt(new_iceberg_mass / (0.45 * rho_ice))
-        new_iceberg_draft = 1.78 * (new_iceberg_length ** 0.71)  # meters
-        new_iceberg_sail = 0.077 * (new_iceberg_length ** 2)  # m ** 2
+        new_iceberg_draft = 1.78 * (new_iceberg_length ** 0.71) # meters
+        new_iceberg_sail = 0.077 * (new_iceberg_length ** 2) # m ** 2
         return new_iceberg_length, new_iceberg_draft, new_iceberg_sail, new_iceberg_mass
 
     def truncated_normal(mean, std_dev, left_trunc, right_trunc):
@@ -243,7 +255,7 @@ def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, icebe
         Returns:
         - float: A randomly sampled number within the specified range.
         """
-        # Calculate the a and b parameters for truncation
+       # Calculate the a and b parameters for truncation
         a = (left_trunc - mean) / std_dev
         b = (right_trunc - mean) / std_dev
         return truncnorm.rvs(a, b, loc=mean, scale=std_dev)
@@ -263,8 +275,8 @@ def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, icebe
         Returns:
         - float: A random sample within the defined range.
         """
-        # Generate a truncated distribution
-        x = np.linspace(-10, right_trunc, 1000)  # Define x-range (lower truncation at -infinity approximated)
+       # Generate a truncated distribution
+        x = np.linspace(-10, right_trunc, 1000) # Define x-range (lower truncation at -infinity approximated)
         pdf = genlogistic.pdf(x, c=-k, loc=loc, scale=scale)
         truncated_cdf = pdf / np.sum(pdf)
         sample = np.random.choice(x, p=truncated_cdf)
@@ -282,75 +294,175 @@ def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, icebe
         Returns:
         - float: A random sample.
         """
-        # Calculate the normalized lower bound for truncation
-        a = (left_trunc - mean) / std_dev  # Truncation point normalized by the distribution
+       # Calculate the normalized lower bound for truncation
+        a = (left_trunc - mean) / std_dev # Truncation point normalized by the distribution
         trunc_norm_dist = truncnorm(a=a, b=np.inf, loc=mean, scale=std_dev)
         sample = trunc_norm_dist.rvs(size=1)[0]
         return sample
 
-    def calculate_outer_boundaries(lengths, lats, lons, min_length):
+    def calculate_outer_boundaries(lengths, lats, lons, min_length, length_ranges):
         """
-        Calculate the outer boundary for ensemble iceberg tracks.
+        Calculate outer boundaries for iceberg ensemble drift tracks at multiple length ranges.
 
         Args:
-        - lengths (np.ndarray): Array of dimensions (i x k x m) representing lengths of iceberg tracks.
-        - lats (np.ndarray): Array of dimensions (i x k x m) representing latitudes.
-        - lons (np.ndarray): Array of dimensions (i x k x m) representing longitudes.
-        - min_length (float): Minimum length for tracks to be included.
+        - lengths (np.ndarray): (i x k x m) Array of iceberg lengths along their ensemble tracks.
+        - lats (np.ndarray): (i x k x m) Array of latitudes.
+        - lons (np.ndarray): (i x k x m) Array of longitudes.
+        - min_length (float): Minimum iceberg length threshold to define the general boundary.
+        - length_ranges (list of tuples): List of (lower, upper) length ranges for computing separate boundaries.
 
         Returns:
-        - dict: Dictionary with keys as iceberg indices and values as convex hull boundary points (lat, lon).
+        - dict: Dictionary containing:
+          - 'min_length_boundary': Outer boundary points for `min_length`.
+          - 'length_range_boundaries': Dict mapping each length range (tuple) to its boundary.
         """
         num_icebergs = lengths.shape[1]
-        boundaries = {}
+        boundaries = {"min_length_boundary": {}, "length_range_boundaries": {rng: {} for rng in length_ranges}}
 
         for k in range(num_icebergs):
-            # Filter lat/lon points where lengths > min_length
-            valid_mask = lengths[:, k, :] > min_length
-            valid_lats = lats[:, k, :][valid_mask]
-            valid_lons = lons[:, k, :][valid_mask]
+            # === Compute boundary for global min_length ===
+            valid_mask_min = lengths[:, k, :] >= min_length
+            valid_lats_min = lats[:, k, :][valid_mask_min]
+            valid_lons_min = lons[:, k, :][valid_mask_min]
 
-            if valid_lats.size > 2:
-                # Combine valid lat/lon points
-                points = np.column_stack((valid_lons, valid_lats))
-
-                # Compute the convex hull
-                hull = ConvexHull(points)
-
-                # Extract boundary points
-                boundary_points = points[hull.vertices]
-                boundaries[k] = boundary_points
+            if valid_lats_min.size > 2:
+                points_min = np.column_stack((valid_lons_min, valid_lats_min))
+                if not np.all(points_min == points_min[0]):  # Ensure at least 3 unique points
+                    hull_min = ConvexHull(points_min)
+                    boundaries["min_length_boundary"][k] = points_min[hull_min.vertices]
+                else:
+                    boundaries["min_length_boundary"][k] = None
             else:
-                boundaries[k] = None  # Not enough points for a convex hull
+                boundaries["min_length_boundary"][k] = None
+
+            # === Compute boundaries for each length range ===
+            for lower, upper in length_ranges:
+                valid_mask_range = (lengths[:, k, :] >= lower) & (lengths[:, k, :] < upper)
+                valid_lats_range = lats[:, k, :][valid_mask_range]
+                valid_lons_range = lons[:, k, :][valid_mask_range]
+
+                if valid_lats_range.size > 2:
+                    points_range = np.column_stack((valid_lons_range, valid_lats_range))
+                    if not np.all(points_range == points_range[0]):  # Ensure at least 3 unique points
+                        hull_range = ConvexHull(points_range)
+                        boundaries["length_range_boundaries"][(lower, upper)][k] = points_range[hull_range.vertices]
+                    else:
+                        boundaries["length_range_boundaries"][(lower, upper)][k] = None
+                else:
+                    boundaries["length_range_boundaries"][(lower, upper)][k] = None
 
         return boundaries
+
+    def calculate_overall_bergy_bit_growler_boundary(bergy_bit_bounds, growler_bounds):
+        """
+        Compute a single overall outer boundary that includes both bergy bits and growlers.
+
+        Args:
+        - bergy_bit_bounds (dict): Dictionary containing bergy bit boundaries.
+        - growler_bounds (dict): Dictionary containing growler boundaries.
+
+        Returns:
+        - np.ndarray or None: Overall outer boundary points (N x 2) if valid points exist, otherwise None.
+        """
+        all_points = []
+
+        # Collect all valid boundary points from bergy bits
+        if "min_length_boundary" in bergy_bit_bounds:
+            for k, boundary in bergy_bit_bounds["min_length_boundary"].items():
+                if boundary is not None and boundary.size > 2:
+                    all_points.append(boundary)
+
+        if "length_range_boundaries" in bergy_bit_bounds:
+            for boundary_dict in bergy_bit_bounds["length_range_boundaries"].values():
+                for k, boundary in boundary_dict.items():
+                    if boundary is not None and boundary.size > 2:
+                        all_points.append(boundary)
+
+        # Collect all valid boundary points from growlers
+        if "min_length_boundary" in growler_bounds:
+            for k, boundary in growler_bounds["min_length_boundary"].items():
+                if boundary is not None and boundary.size > 2:
+                    all_points.append(boundary)
+
+        if "length_range_boundaries" in growler_bounds:
+            for boundary_dict in growler_bounds["length_range_boundaries"].values():
+                for k, boundary in boundary_dict.items():
+                    if boundary is not None and boundary.size > 2:
+                        all_points.append(boundary)
+
+        # If no valid points were collected, return None
+        if not all_points:
+            return None  # No valid points, return None
+
+        # Convert to a single array
+        all_points = np.vstack(all_points)
+
+        # Ensure at least 3 **unique** points exist
+        unique_points = np.unique(all_points, axis=0)
+        if unique_points.shape[0] < 3:
+            return None  # Not enough unique points for a valid boundary
+
+        # Compute the convex hull
+        hull = ConvexHull(unique_points)
+        return unique_points[hull.vertices]
 
     def last_valid_length_stats(lengths, min_length, timeseries):
         length_stats = {}
 
-        for iceberg_index in range(lengths.shape[1]):  # loop over icebergs (k)
+        for iceberg_index in range(lengths.shape[1]): # loop over icebergs (k)
             valid_lengths = []
             latest_times = []
 
-            for ens_member in range(lengths.shape[2]):  # loop over ensemble members (m)
-                # Find the last valid length and corresponding time
-                for time_step in range(lengths.shape[0] - 1, -1, -1):  # loop over time steps (i) in reverse
+            for ens_member in range(lengths.shape[2]): # loop over ensemble members (m)
+               # Find the last valid length and corresponding time
+                for time_step in range(lengths.shape[0] - 1, -1, -1): # loop over time steps (i) in reverse
                     if lengths[time_step, iceberg_index, ens_member] > min_length:
                         valid_lengths.append(lengths[time_step, iceberg_index, ens_member])
                         latest_times.append(timeseries[time_step])
-                        break  # Exit once the last valid length is found for this ensemble member
+                        break # Exit once the last valid length is found for this ensemble member
 
             if valid_lengths:
-                # Save stats and the latest time for this iceberg
-                length_stats[iceberg_index] = {'min': min(valid_lengths),
-                    'max': max(valid_lengths),
-                    'mean': np.mean(valid_lengths),
-                    'latest_time': max(latest_times)}
+               # Save stats and the latest time for this iceberg
+                length_stats[iceberg_index] = {'min': min(valid_lengths), 'max': max(valid_lengths), 'mean': np.mean(valid_lengths), 'latest_time': max(latest_times)}
             else:
-                # No valid lengths found
+               # No valid lengths found
                 length_stats[iceberg_index] = {'min': None, 'max': None, 'mean': None, 'latest_time': None}
 
         return length_stats
+
+    def overall_last_valid_length_stats(lengths, min_length, timeseries):
+        """
+        Calculate overall statistics for the last valid iceberg lengths across all bergy bits and growlers.
+
+        Args:
+        - lengths (np.ndarray): (i x k x m) Array of iceberg lengths along their ensemble tracks.
+        - min_length (float): Minimum iceberg length threshold to be considered valid.
+        - timeseries (np.ndarray): (i,) Array of time steps.
+
+        Returns:
+        - dict: Dictionary containing:
+            - 'min': Minimum last valid length across all icebergs.
+            - 'max': Maximum last valid length across all icebergs.
+            - 'mean': Mean of last valid lengths across all icebergs.
+            - 'latest_time': Latest time corresponding to the last valid length.
+        """
+        valid_lengths = []
+        latest_times = []
+
+        # Loop over icebergs (k)
+        for iceberg_index in range(lengths.shape[1]):
+            for ens_member in range(lengths.shape[2]):  # Loop over ensemble members (m)
+                # Find the last valid length and corresponding time
+                for time_step in range(lengths.shape[0] - 1, -1, -1):  # Reverse loop over time (i)
+                    if lengths[time_step, iceberg_index, ens_member] > min_length:
+                        valid_lengths.append(lengths[time_step, iceberg_index, ens_member])
+                        latest_times.append(timeseries[time_step])
+                        break  # Stop once the last valid length is found for this member
+
+        if valid_lengths:
+            return {'min': min(valid_lengths), 'max': max(valid_lengths), 'mean': np.mean(valid_lengths), 'latest_time': max(latest_times)}
+        else:
+            return {'min': None, 'max': None, 'mean': None, 'latest_time': None}
 
     rcm_datetime0 = np.datetime64(rcm_datetime0)
     forecast_end_time = np.datetime64(forecast_end_time)
@@ -389,9 +501,9 @@ def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, icebe
         if bergy_bit_bathy_depth0 <= bergy_bit_drafts0[i]:
             bergy_bit_drafts0[i] = bergy_bit_bathy_depth0 - 1.
 
-        growler_drafts0[i] = 1.78 * (5. ** 0.71)  # meters
-        growler_masses0[i] = 0.45 * rho_ice * (5. ** 3)  # kg
-        growler_sails0[i] = 0.077 * (5. ** 2)  # m ** 2
+        growler_drafts0[i] = 1.78 * (5. ** 0.71) # meters
+        growler_masses0[i] = 0.45 * rho_ice * (5. ** 3) # kg
+        growler_sails0[i] = 0.077 * (5. ** 2) # m ** 2
         growler_bathy_depth0 = bathy_interp([[iceberg_lats0[i], iceberg_lons0[i]]])[0]
 
         if growler_bathy_depth0 <= growler_drafts0[i]:
@@ -451,6 +563,21 @@ def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, icebe
     forecast_times_wind_waves = []
     forecast_times_ocean = []
     forecast_times_airT_sw_rad = []
+
+    directory = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/'
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    file = files[0]
+    hour_utc_str_ocean = file[9:11]
+
+    directory = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/'
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    file = files[0]
+    hour_utc_str_wind_waves = file[9:11]
+
+    directory = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/'
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    file = files[0]
+    hour_utc_str_airT_sw_rad = file[-10:-8]
 
     forecast_start_time_wind_waves = np.datetime64(dirname_wind_waves + 'T' + hour_utc_str_wind_waves + ':00:00')
     forecast_start_time_ocean = np.datetime64(dirname_ocean + 'T' + hour_utc_str_ocean + ':00:00')
@@ -1483,24 +1610,30 @@ def rcm_bergy_bit_growler_forecaster(bathy_data_path, rootpath_to_metdata, icebe
                     else:
                         growler_grounded_statuses[i + 1, k, m] = 0
 
-    bergy_bit_bounds = calculate_outer_boundaries(bergy_bit_lengths, bergy_bit_lats, bergy_bit_lons, min_length_bb)
-    growler_bounds = calculate_outer_boundaries(growler_lengths, growler_lats, growler_lons, min_length_growler)
+    bergy_bit_length_ranges = [(0, 5), (5, 10), (10, 15)]
+    growler_length_ranges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
+    bergy_bit_bounds = calculate_outer_boundaries(bergy_bit_lengths, bergy_bit_lats, bergy_bit_lons, min_length_bb, bergy_bit_length_ranges)
+    growler_bounds = calculate_outer_boundaries(growler_lengths, growler_lats, growler_lons, min_length_growler, growler_length_ranges)
     bergy_bit_bounds_dict = {}
     growler_bounds_dict = {}
 
-    for k in range(len(bergy_bit_bounds)):
-        if bergy_bit_bounds[k] is not None:
-            bergy_bit_bounds_dict[k] = np.array(bergy_bit_bounds[k])
+    for k in range(len(bergy_bit_bounds["min_length_boundary"])):
+        if bergy_bit_bounds["min_length_boundary"][k] is not None:
+            bergy_bit_bounds_dict[k] = np.array(bergy_bit_bounds["min_length_boundary"][k])
         else:
             bergy_bit_bounds_dict[k] = np.empty((0, 2))
 
-    for k in range(len(growler_bounds)):
-        if growler_bounds[k] is not None:
-            growler_bounds_dict[k] = np.array(growler_bounds[k])
+    for k in range(len(growler_bounds["min_length_boundary"])):
+        if growler_bounds["min_length_boundary"][k] is not None:
+            growler_bounds_dict[k] = np.array(growler_bounds["min_length_boundary"][k])
         else:
             growler_bounds_dict[k] = np.empty((0, 2))
 
+    overall_bergy_bit_growler_boundary = calculate_overall_bergy_bit_growler_boundary(bergy_bit_bounds, growler_bounds)
     bergy_bit_length_final_stats = last_valid_length_stats(bergy_bit_lengths, min_length_bb, bergy_bit_growler_times)
     growler_length_final_stats = last_valid_length_stats(growler_lengths, min_length_growler, bergy_bit_growler_times)
-    return bergy_bit_bounds_dict, bergy_bit_length_final_stats, growler_bounds_dict, growler_length_final_stats
+    bergy_bit_length_overall_stats = overall_last_valid_length_stats(bergy_bit_lengths, min_length_bb, bergy_bit_growler_times)
+    growler_length_overall_stats = overall_last_valid_length_stats(growler_lengths, min_length_growler, bergy_bit_growler_times)
+    return(bergy_bit_bounds_dict, bergy_bit_bounds, bergy_bit_length_final_stats, growler_bounds_dict, growler_bounds, growler_length_final_stats,
+           overall_bergy_bit_growler_boundary, bergy_bit_length_overall_stats, growler_length_overall_stats)
 

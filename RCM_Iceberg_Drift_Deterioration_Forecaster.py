@@ -7,6 +7,7 @@ import netCDF4 as nc
 import os
 import gsw
 from observation import Observation
+# from observations import Observations
 
 def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime64, si_toggle):
     deg_radius = 10

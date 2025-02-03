@@ -14,29 +14,26 @@ warnings.simplefilter(action='ignore')
 
 start_time = time.time()
 
-# iceberg_lats0 = [47.5, 47.5]
-# iceberg_lons0 = [-46.9, -46.5]
-iceberg_lats0 = [47.5]
-iceberg_lons0 = [-46.5]
-# rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc))  # - np.timedelta64(12, 'h')
-# rcm_datetime0 = np.datetime64('2024-12-20T16:46:47.683976')
+iceberg_lats0 = [47.5, 47.5]
+iceberg_lons0 = [-46.9, -46.5]
+# iceberg_lats0 = 47.5
+# iceberg_lons0 = -46.5
+# rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc)) # - np.timedelta64(12, 'h')
 rcm_datetime0 = np.datetime64('2024-12-20T12:00:00')
-# rcm_datetime0 = np.datetime64('2024-12-09T18:01:00')
 forecast_end_time = rcm_datetime0 + np.timedelta64(72, 'h') # + np.timedelta64(23, 'm')
 # forecast_end_time = np.datetime64('2024-12-20T00:00:00') + np.timedelta64(84, 'h')
-# iceberg_ids = [0, 1]
-iceberg_ids = [0]
-bathy_data_path = './GEBCO_Bathymetric_Data/gebco_2024.nc'
-rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
-hour_utc_str_airT_sw_rad = '12'
-hour_utc_str_wind_waves = '00'
-hour_utc_str_ocean = '06'
+iceberg_lengths0 = [40., 67.]
+# iceberg_lengths0 = 67.
+iceberg_ids = ['0000', '0001']
+# iceberg_ids = '0000'
+iceberg_grounded_statuses0 = [False, False]
+# iceberg_grounded_statuses0 = False
 si_toggle = False
 
-bergy_bit_bounds_dict, bergy_bit_length_final_stats, growler_bounds_dict, growler_length_final_stats = rcm_bergy_bit_growler_forecaster(bathy_data_path,
-                                                                              rootpath_to_metdata, iceberg_lats0, iceberg_lons0, iceberg_ids, rcm_datetime0,
-                                                                              forecast_end_time, hour_utc_str_airT_sw_rad, hour_utc_str_wind_waves,
-                                                                              hour_utc_str_ocean, si_toggle)
+obs = Observations(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, [False, False], iceberg_ids)
+# obs = Observation(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, False, iceberg_ids)
+(bergy_bit_bounds_dict, bergy_bit_bounds, bergy_bit_length_final_stats, growler_bounds_dict, growler_bounds, growler_length_final_stats,
+ overall_bergy_bit_growler_boundary, bergy_bit_length_overall_stats, growler_length_overall_stats) = rcm_bergy_bit_growler_forecaster(obs, forecast_end_time, si_toggle)
 
 for iceberg_index, stats in bergy_bit_length_final_stats.items():
     print(f"Iceberg {iceberg_index}:")
@@ -54,6 +51,20 @@ for iceberg_index, stats in growler_length_final_stats.items():
     print(f" Final Growler Time: {stats['latest_time']}")
     print()
 
+print("Overall Last Valid Bergy Bit Length Stats:")
+print(f"Min Length: {bergy_bit_length_overall_stats['min']} m")
+print(f"Max Length: {bergy_bit_length_overall_stats['max']} m")
+print(f"Mean Length: {bergy_bit_length_overall_stats['mean']} m")
+print(f"Latest Recorded Time: {bergy_bit_length_overall_stats['latest_time']}")
+print()
+
+print("Overall Last Valid Growler Length Stats:")
+print(f"Min Length: {growler_length_overall_stats['min']} m")
+print(f"Max Length: {growler_length_overall_stats['max']} m")
+print(f"Mean Length: {growler_length_overall_stats['mean']} m")
+print(f"Latest Recorded Time: {growler_length_overall_stats['latest_time']}")
+print()
+
 end_time = time.time()
 
 # Calculate the elapsed time
@@ -62,40 +73,63 @@ print(f"Script runtime: {elapsed_time:.2f} minutes.")
 # print(f"Script runtime: {elapsed_time * 60.:.2f} seconds.")
 
 plt.figure(figsize=(10, 8))
+
+# Define colors for each range
+range_colors = ["gold", "cyan", "magenta", "lime", "brown", "navy"]
 colors = ["red", "green", "blue", "orange", "purple"]
 
-# Plot bergy bit boundaries
+# Function to get a consistent color for each range
+def get_range_color(i):
+    return range_colors[i % len(range_colors)]
+
+# --- Plot Bergy Bit Boundaries for min_length ---
 for k, boundary in bergy_bit_bounds_dict.items():
-    if boundary.size > 0: # Check if the boundary is not empty
-        # Close the boundary by adding the first point to the end
-        closed_boundary = np.vstack([boundary, boundary[0]])
+    if boundary is not None and boundary.size > 0:
+        closed_boundary = np.vstack([boundary, boundary[0]]) # Close the boundary loop
         plt.plot(closed_boundary[:, 0], # Longitude
                  closed_boundary[:, 1], # Latitude
-                 label=f"Bergy Bits for Iceberg {k} Boundary",
-                 linewidth=2,
-                 c=colors[k % len(colors)])
+                 label=f"Bergy Bits for Iceberg {k} Boundary", linewidth=2, c=colors[k % len(colors)])
+
+# --- Plot Bergy Bit Ranges ---
+if "length_range_boundaries" in bergy_bit_bounds:
+    sorted_ranges = sorted(bergy_bit_bounds["length_range_boundaries"].keys()) # Sort (low, high) tuples
+    for i, (low, high) in enumerate(sorted_ranges):
+        for k, boundary in bergy_bit_bounds["length_range_boundaries"][(low, high)].items():
+            if boundary is not None and boundary.size > 0:
+                closed_boundary = np.vstack([boundary, boundary[0]]) # Close the loop
+                plt.fill(closed_boundary[:, 0], closed_boundary[:, 1], color=get_range_color(i), alpha=0.25, label=f"Bergy Bits {low}m - {high}m", zorder=-i)
 
 colors = ["blue", "orange", "purple", "red", "green"]
 
-# Plot growler boundaries
+# --- Plot Growler Boundaries for min_length ---
 for k, boundary in growler_bounds_dict.items():
-    if boundary.size > 0: # Check if the boundary is not empty
-        # Close the boundary by adding the first point to the end
-        closed_boundary = np.vstack([boundary, boundary[0]])
+    if boundary is not None and boundary.size > 0:
+        closed_boundary = np.vstack([boundary, boundary[0]]) # Close the boundary loop
         plt.plot(closed_boundary[:, 0], # Longitude
                  closed_boundary[:, 1], # Latitude
-                 label=f"Growlers for Iceberg {k} Boundary",
-                 linewidth=2,
-                 c=colors[k % len(colors)])
+                 label=f"Growlers for Iceberg {k} Boundary", linewidth=2, c=colors[k % len(colors)])
 
-plt.scatter(iceberg_lons0, iceberg_lats0, c="red", s=100, label="Iceberg Initial Positions", edgecolor="black")
+# --- Plot Growler Ranges ---
+if "length_range_boundaries" in growler_bounds:
+    sorted_ranges = sorted(growler_bounds["length_range_boundaries"].keys()) # Sort (low, high) tuples
+    for i, (low, high) in enumerate(sorted_ranges):
+        for k, boundary in growler_bounds["length_range_boundaries"][(low, high)].items():
+            if boundary is not None and boundary.size > 0:
+                closed_boundary = np.vstack([boundary, boundary[0]]) # Close the loop
+                plt.fill(closed_boundary[:, 0], closed_boundary[:, 1], color=get_range_color(i), alpha=0.25, label=f"Growlers {low}m - {high}m", zorder=-i)
 
-# Correctly label the axes
+# --- Plot the Overall Bergy Bit + Growler Boundary ---
+if overall_bergy_bit_growler_boundary is not None and overall_bergy_bit_growler_boundary.size > 0:
+    closed_boundary = np.vstack([overall_bergy_bit_growler_boundary, overall_bergy_bit_growler_boundary[0]]) # Close loop
+    plt.plot(closed_boundary[:, 0], closed_boundary[:, 1], label="Overall Bergy Bit + Growler Boundary", linewidth=3, linestyle="dashed", color="black", zorder=5)
+
+# --- Plot Iceberg Initial Positions ---
+plt.scatter(iceberg_lons0, iceberg_lats0, c="red", s=100, label="Iceberg Initial Positions", edgecolor="black", zorder=10)
 plt.xlabel("Longitude (°E)")
 plt.ylabel("Latitude (°N)")
 plt.title("Outer Boundaries of Bergy Bits and Growlers", fontweight='bold', fontsize=10)
 plt.legend()
 plt.grid(True)
-plt.savefig("bergy_bit_growler_outer_boundaries_plot.png", dpi=300, bbox_inches="tight")
+# plt.savefig("bergy_bit_growler_outer_boundaries_ranges.png", dpi=300, bbox_inches="tight")
 plt.show()
 
