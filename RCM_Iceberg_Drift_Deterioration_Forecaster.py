@@ -910,62 +910,62 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime
 
             fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + u_wind_file_before
             u_wind_data_before = nc.Dataset(fname)
-            u_wind_before = np.squeeze(u_wind_data_before.variables['UGRD_10maboveground'][:])
+            u_wind_before = np.squeeze(u_wind_data_before.variables['u10'][:])
             u_wind_data_before.close()
 
             fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + u_wind_file_after
             u_wind_data_after = nc.Dataset(fname)
-            u_wind_after = np.squeeze(u_wind_data_after.variables['UGRD_10maboveground'][:])
+            u_wind_after = np.squeeze(u_wind_data_after.variables['u10'][:])
             u_wind_data_after.close()
 
             fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + v_wind_file_before
             v_wind_data_before = nc.Dataset(fname)
-            v_wind_before = np.squeeze(v_wind_data_before.variables['VGRD_10maboveground'][:])
+            v_wind_before = np.squeeze(v_wind_data_before.variables['v10'][:])
             v_wind_data_before.close()
 
             fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + v_wind_file_after
             v_wind_data_after = nc.Dataset(fname)
-            v_wind_after = np.squeeze(v_wind_data_after.variables['VGRD_10maboveground'][:])
+            v_wind_after = np.squeeze(v_wind_data_after.variables['v10'][:])
             v_wind_data_after.close()
 
             fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + airT_file_before
             airT_data_before = nc.Dataset(fname)
-            airT_before = np.squeeze(airT_data_before.variables['TMP_2maboveground'][:]) - 273.15
+            airT_before = np.squeeze(airT_data_before.variables['t2m'][:]) - 273.15
             airT_data_before.close()
 
             fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + airT_file_after
             airT_data_after = nc.Dataset(fname)
-            airT_after = np.squeeze(airT_data_after.variables['TMP_2maboveground'][:]) - 273.15
+            airT_after = np.squeeze(airT_data_after.variables['t2m'][:]) - 273.15
             airT_data_after.close()
 
             fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + solar_rad_file_before
             solar_rad_data_before = nc.Dataset(fname)
-            solar_rad_before = np.squeeze(solar_rad_data_before.variables['DSWRF_surface'][:])
+            solar_rad_before = np.squeeze(solar_rad_data_before.variables['ssrd'][:])
             solar_rad_data_before.close()
 
             fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + solar_rad_file_after
             solar_rad_data_after = nc.Dataset(fname)
-            solar_rad_after = np.squeeze(solar_rad_data_after.variables['DSWRF_surface'][:])
+            solar_rad_after = np.squeeze(solar_rad_data_after.variables['ssrd'][:])
             solar_rad_data_after.close()
 
             fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + Hs_file_before
             Hs_data_before = nc.Dataset(fname)
-            Hs_before = np.squeeze(Hs_data_before.variables['HTSGW_surface'][:])
+            Hs_before = np.squeeze(Hs_data_before.variables['swh'][:])
             Hs_data_before.close()
 
             fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + Hs_file_after
             Hs_data_after = nc.Dataset(fname)
-            Hs_after = np.squeeze(Hs_data_after.variables['HTSGW_surface'][:])
+            Hs_after = np.squeeze(Hs_data_after.variables['swh'][:])
             Hs_data_after.close()
 
             fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + wave_dir_file_before
             wave_dir_data_before = nc.Dataset(fname)
-            wave_dir_before = np.squeeze(wave_dir_data_before.variables['WVDIR_surface'][:])
+            wave_dir_before = np.squeeze(wave_dir_data_before.variables['wvdir'][:])
             wave_dir_data_before.close()
 
             fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + wave_dir_file_after
             wave_dir_data_after = nc.Dataset(fname)
-            wave_dir_after = np.squeeze(wave_dir_data_after.variables['WVDIR_surface'][:])
+            wave_dir_after = np.squeeze(wave_dir_data_after.variables['wvdir'][:])
             wave_dir_data_after.close()
 
             wave_E_before = np.sin(np.deg2rad(wave_dir_before))
@@ -975,12 +975,12 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime
 
             fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + wave_pd_file_before
             wave_pd_data_before = nc.Dataset(fname)
-            wave_pd_before = np.squeeze(wave_pd_data_before.variables['MZWPER_surface'][:])
+            wave_pd_before = np.squeeze(wave_pd_data_before.variables['mp2'][:])
             wave_pd_data_before.close()
 
             fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + wave_pd_file_after
             wave_pd_data_after = nc.Dataset(fname)
-            wave_pd_after = np.squeeze(wave_pd_data_after.variables['MZWPER_surface'][:])
+            wave_pd_after = np.squeeze(wave_pd_data_after.variables['mp2'][:])
             wave_pd_data_after.close()
 
             fname = directory + '/' + u_curr_file_before
