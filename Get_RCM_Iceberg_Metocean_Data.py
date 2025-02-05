@@ -18,6 +18,11 @@ rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
 forecast_hours = 84
 si_toggle = True
 
+# minimum_longitude = -64.5
+# maximum_longitude = -46.75
+# minimum_latitude = 48
+# maximum_latitude = 61.2
+
 dirname_today = str(np.datetime64('today'))
 d_today = dirname_today.replace('-', '')
 wind_waves_ocean_hours = np.arange(0, forecast_hours + 1, 1)
