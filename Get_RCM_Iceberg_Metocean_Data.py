@@ -15,16 +15,6 @@ warnings.simplefilter(action='ignore')
 # 46.4 GB of daily metocean forecast data if downloaded only once daily.
 # 2 hours and 56 minutes to download 84 hours (3.5 days) of forecast metocean data.
 
-rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
-date = str(np.datetime64('today'))
-forecast_hours = 84
-minimum_longitude = -64.5
-maximum_longitude = -46.75
-minimum_latitude = 48
-maximum_latitude = 61.2
-maximum_iceberg_length = 100.
-si_toggle = True
-
 def get_rcm_metocean_data(date, forecast_hours, minimum_longitude, maximum_longitude, minimum_latitude, maximum_latitude, maximum_iceberg_length, si_toggle):
     rootpath_to_metdata = './RCM_Iceberg_Metocean_Data/'
     dirname_today = date
@@ -792,6 +782,15 @@ def get_rcm_metocean_data(date, forecast_hours, minimum_longitude, maximum_longi
                 latitude_var[:] = ocean_lat
                 longitude_var[:] = ocean_lon
                 vsi_var[:] = vsi
+
+date = str(np.datetime64('today'))
+forecast_hours = 84
+minimum_longitude = -64.5
+maximum_longitude = -46.75
+minimum_latitude = 48
+maximum_latitude = 61.2
+maximum_iceberg_length = 100.
+si_toggle = True
 
 get_rcm_metocean_data(date, forecast_hours, minimum_longitude, maximum_longitude, minimum_latitude, maximum_latitude, maximum_iceberg_length, si_toggle)
 
