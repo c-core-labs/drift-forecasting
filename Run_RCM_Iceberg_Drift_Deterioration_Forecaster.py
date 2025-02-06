@@ -5,20 +5,14 @@ import time
 import warnings
 warnings.simplefilter(action='ignore')
 
-# Without sea ice forcing:
-# Script runtime: 13.13 minutes for 2 icebergs forecast to 24 hours.
-
-# With sea ice forcing:
-# Script runtime: 13.25 minutes for 2 icebergs forecast to 24 hours.
-
 start_time = time.time()
 
 # iceberg_lats0 = [47.5, 47.5]
 # iceberg_lons0 = [-46.9, -46.5]
-iceberg_lats0 = 47.5
-iceberg_lons0 = -46.5
+iceberg_lats0 = 54.6
+iceberg_lons0 = -55.625
 # rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc)) # - np.timedelta64(12, 'h')
-rcm_datetime0 = np.datetime64('2025-02-05T16:36:48')
+rcm_datetime0 = np.datetime64('2025-02-06T16:36:48')
 next_rcm_time = rcm_datetime0 + np.timedelta64(24, 'h') # + np.timedelta64(23, 'm')
 # iceberg_lengths0 = [40., 67.]
 iceberg_lengths0 = 67.
