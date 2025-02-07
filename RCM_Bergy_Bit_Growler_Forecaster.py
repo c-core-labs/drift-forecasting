@@ -2,7 +2,6 @@
 from scipy.interpolate import RegularGridInterpolator, griddata, interp1d
 from scipy.stats import truncnorm, genlogistic
 from scipy.spatial import ConvexHull
-from tempfile import TemporaryDirectory
 import numpy as np
 import netCDF4 as nc
 import gsw
@@ -11,7 +10,6 @@ from observations import Observations
 # from observation import Observation
 
 def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_toggle):
-    deg_radius = 30
     ens_num = 10
     rho_ice = 910.
     ice_albedo = 0.1
@@ -614,35 +612,7 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
     ocean_depth = ocean_data.variables['depth'][:]
     ocean_depth = ocean_depth.flatten()
     ocean_data.close()
-    lat_mins = []
-    lat_maxes = []
-    lon_mins = []
-    lon_maxes = []
-
-    for i in range(len(iceberg_lats0)):
-        distance = np.sqrt((ocean_lat - iceberg_lats0[i]) ** 2 + (ocean_lon - (iceberg_lons0[i] + 360.)) ** 2)
-        nearest_idx = np.unravel_index(np.argmin(distance, axis=None), distance.shape)
-        nearest_lat_idx, nearest_lon_idx = nearest_idx
-        lat_mins.append(max(nearest_lat_idx - deg_radius, 0))
-        lat_maxes.append(min(nearest_lat_idx + deg_radius, ocean_lat.shape[0] - 1))
-        lon_mins.append(max(nearest_lon_idx - deg_radius, 0))
-        lon_maxes.append(min(nearest_lon_idx + deg_radius, ocean_lon.shape[1] - 1))
-
-    lat_min_ocean_ind = min(lat_mins)
-    lat_max_ocean_ind = max(lat_maxes) + 1
-    lon_min_ocean_ind = min(lon_mins)
-    lon_max_ocean_ind = max(lon_maxes) + 1
-    max_bb_draft = 15.
-
-    loc_depth = np.argwhere(ocean_depth <= max_bb_draft).flatten()
-
-    if loc_depth[-1] + 1 < len(ocean_depth):
-        loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
-
-    ocean_lat = ocean_lat[lat_min_ocean_ind:lat_max_ocean_ind, lon_min_ocean_ind:lon_max_ocean_ind]
-    ocean_lon = ocean_lon[lat_min_ocean_ind:lat_max_ocean_ind, lon_min_ocean_ind:lon_max_ocean_ind]
     points_ocean = np.array([ocean_lat.ravel(), ocean_lon.ravel()]).T
-    ocean_depth = ocean_depth[loc_depth]
 
     fname = (rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + d_wind_waves + 'T' +
              hour_utc_str_wind_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_waves_hours[0]).zfill(3) + 'H.nc')
@@ -658,957 +628,831 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
     lon_airT_sw_rad = airT_data.variables['longitude'][:]
     airT_data.close()
 
-    with (TemporaryDirectory() as directory):
-        for i in range(len(forecast_times_ocean)):
-            fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + d_ocean + 'T' + hour_utc_str_ocean + \
-                    'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
-            print('Shrinking forecast zonal ocean current file ' + d_ocean + 'T' + hour_utc_str_ocean + \
-                  'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc')
-            u_curr_data = nc.Dataset(fname)
-            u_curr = np.squeeze(u_curr_data.variables['vozocrtx'][:])
-            u_curr_data.close()
-            u_curr = u_curr[loc_depth, lat_min_ocean_ind:lat_max_ocean_ind, lon_min_ocean_ind:lon_max_ocean_ind]
-            fname = directory + '/' + d_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
+    base_time_wind_waves = forecast_times_wind_waves[0]
+    time_increments_wind_waves = np.arange(forecast_times_wind_waves_hours[0], forecast_times_wind_waves_hours[-1], 1)
+    file_times_wind_waves = base_time_wind_waves + time_increments_wind_waves.astype('timedelta64[h]')
+    date_only_wind_waves = str(base_time_wind_waves.astype('datetime64[D]')).replace('-', '')
 
-            with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
-                ncfile.createDimension('latitude', len(ocean_lat[:, 0]))
-                ncfile.createDimension('longitude', len(ocean_lon[0, :]))
-                ncfile.createDimension('depth', len(ocean_depth))
+    base_time_ocean = forecast_times_ocean[0]
+    time_increments_ocean = np.arange(forecast_times_ocean_hours[0], forecast_times_ocean_hours[-1], 1)
+    file_times_ocean = base_time_ocean + time_increments_ocean.astype('timedelta64[h]')
+    date_only_ocean = str(base_time_ocean.astype('datetime64[D]')).replace('-', '')
 
-                latitude_var = ncfile.createVariable('latitude', 'f8', ('latitude', 'longitude',))
-                longitude_var = ncfile.createVariable('longitude', 'f8', ('latitude', 'longitude',))
-                depth_var = ncfile.createVariable('depth', 'f8', ('depth',))
-                u_curr_var = ncfile.createVariable('vozocrtx', 'f4', ('depth', 'latitude', 'longitude',))
+    base_time_airT_sw_rad = forecast_times_airT_sw_rad[0]
+    time_increments_airT_sw_rad = np.arange(forecast_times_airT_sw_rad_hours[0], forecast_times_airT_sw_rad_hours[-1], 3)
+    file_times_airT_sw_rad = base_time_airT_sw_rad + time_increments_airT_sw_rad.astype('timedelta64[h]')
+    date_only_airT_sw_rad = str(base_time_airT_sw_rad.astype('datetime64[D]')).replace('-', '')
 
-                latitude_var[:] = ocean_lat
-                longitude_var[:] = ocean_lon
-                depth_var[:] = ocean_depth
-                u_curr_var[:] = u_curr
+    wind_dir_errors = []
+    curr_speed_errors = []
 
-            fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + d_ocean + 'T' + hour_utc_str_ocean + \
-                    'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
-            print('Shrinking forecast meridional ocean current file ' + d_ocean + 'T' + hour_utc_str_ocean + \
-                  'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc')
-            v_curr_data = nc.Dataset(fname)
-            v_curr = np.squeeze(v_curr_data.variables['vomecrty'][:])
-            v_curr_data.close()
-            v_curr = v_curr[loc_depth, lat_min_ocean_ind:lat_max_ocean_ind, lon_min_ocean_ind:lon_max_ocean_ind]
-            fname = directory + '/' + d_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
+    for i in range(ens_num):
+        wind_dir_error = truncated_normal(mean_wind_dir, std_dev_wind_dir, left_trunc_wind_dir, right_trunc_wind_dir)
+        curr_speed_error = sample_scaled_error(mean_curr_speed, std_dev_curr_speed, k_curr_speed, scale_curr_speed, loc_curr_speed, right_trunc_curr_speed)
+        wind_dir_errors.append(wind_dir_error)
+        curr_speed_errors.append(curr_speed_error)
 
-            with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
-                ncfile.createDimension('latitude', len(ocean_lat[:, 0]))
-                ncfile.createDimension('longitude', len(ocean_lon[0, :]))
-                ncfile.createDimension('depth', len(ocean_depth))
+    for i in range(len(bergy_bit_growler_times) - 1):
+        print('Forecasting bergy bits and growlers at ' + str(bergy_bit_growler_times[i]) + ' UTC...')
+        bergy_bit_growler_time = bergy_bit_growler_times[i]
+        before_idx = np.where(file_times_wind_waves <= bergy_bit_growler_time)[0][-1]
 
-                latitude_var = ncfile.createVariable('latitude', 'f8', ('latitude', 'longitude',))
-                longitude_var = ncfile.createVariable('longitude', 'f8', ('latitude', 'longitude',))
-                depth_var = ncfile.createVariable('depth', 'f8', ('depth',))
-                v_curr_var = ncfile.createVariable('vomecrty', 'f4', ('depth', 'latitude', 'longitude',))
+        try:
+            after_idx = np.where(file_times_wind_waves > bergy_bit_growler_time)[0][0]
+        except:
+            after_idx = -1
 
-                latitude_var[:] = ocean_lat
-                longitude_var[:] = ocean_lon
-                depth_var[:] = ocean_depth
-                v_curr_var[:] = v_curr
-
-            fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + d_ocean + 'T' + hour_utc_str_ocean + \
-                    'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
-            print('Shrinking forecast ocean potential temperature file ' + d_ocean + 'T' + hour_utc_str_ocean + \
-                  'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc')
-            water_pot_temp_data = nc.Dataset(fname)
-            water_pot_temp = np.squeeze(water_pot_temp_data.variables['votemper'][:]) - 273.15
-            water_pot_temp_data.close()
-            water_pot_temp = water_pot_temp[loc_depth, lat_min_ocean_ind:lat_max_ocean_ind,
-                             lon_min_ocean_ind:lon_max_ocean_ind]
-            fname = directory + '/' + d_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
-
-            with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
-                ncfile.createDimension('latitude', len(ocean_lat[:, 0]))
-                ncfile.createDimension('longitude', len(ocean_lon[0, :]))
-                ncfile.createDimension('depth', len(ocean_depth))
-
-                latitude_var = ncfile.createVariable('latitude', 'f8', ('latitude', 'longitude',))
-                longitude_var = ncfile.createVariable('longitude', 'f8', ('latitude', 'longitude',))
-                depth_var = ncfile.createVariable('depth', 'f8', ('depth',))
-                water_pot_temp_var = ncfile.createVariable('votemper', 'f4', ('depth', 'latitude', 'longitude',))
-
-                latitude_var[:] = ocean_lat
-                longitude_var[:] = ocean_lon
-                depth_var[:] = ocean_depth
-                water_pot_temp_var[:] = water_pot_temp
-
-            fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + d_ocean + 'T' + hour_utc_str_ocean + \
-                    'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
-            print('Shrinking forecast ocean salinity file ' + d_ocean + 'T' + hour_utc_str_ocean + \
-                  'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc')
-            water_sal_data = nc.Dataset(fname)
-            water_sal = np.squeeze(water_sal_data.variables['vosaline'][:])
-            water_sal_data.close()
-            water_sal = water_sal[loc_depth, lat_min_ocean_ind:lat_max_ocean_ind, lon_min_ocean_ind:lon_max_ocean_ind]
-            fname = directory + '/' + d_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
-
-            with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
-                ncfile.createDimension('latitude', len(ocean_lat[:, 0]))
-                ncfile.createDimension('longitude', len(ocean_lon[0, :]))
-                ncfile.createDimension('depth', len(ocean_depth))
-
-                latitude_var = ncfile.createVariable('latitude', 'f8', ('latitude', 'longitude',))
-                longitude_var = ncfile.createVariable('longitude', 'f8', ('latitude', 'longitude',))
-                depth_var = ncfile.createVariable('depth', 'f8', ('depth',))
-                water_sal_var = ncfile.createVariable('vosaline', 'f4', ('depth', 'latitude', 'longitude',))
-
-                latitude_var[:] = ocean_lat
-                longitude_var[:] = ocean_lon
-                depth_var[:] = ocean_depth
-                water_sal_var[:] = water_sal
-
-            if si_toggle:
-                fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + d_ocean + 'T' + hour_utc_str_ocean + \
-                        'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
-                print('Shrinking forecast sea ice concentration file ' + d_ocean + 'T' + hour_utc_str_ocean + \
-                      'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc')
-                siconc_data = nc.Dataset(fname)
-                siconc = np.squeeze(siconc_data.variables['iiceconc'][:])
-                siconc_data.close()
-                siconc = siconc[lat_min_ocean_ind:lat_max_ocean_ind, lon_min_ocean_ind:lon_max_ocean_ind]
-                fname = directory + '/' + d_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + str(forecast_times_ocean_hours[i]).zfill(3) + '.nc'
-
-                with nc.Dataset(fname, 'w', format='NETCDF4') as ncfile:
-                    ncfile.createDimension('latitude', len(ocean_lat[:, 0]))
-                    ncfile.createDimension('longitude', len(ocean_lon[0, :]))
-
-                    latitude_var = ncfile.createVariable('latitude', 'f8', ('latitude', 'longitude',))
-                    longitude_var = ncfile.createVariable('longitude', 'f8', ('latitude', 'longitude',))
-                    siconc_var = ncfile.createVariable('iiceconc', 'f4', ('latitude', 'longitude',))
-
-                    latitude_var[:] = ocean_lat
-                    longitude_var[:] = ocean_lon
-                    siconc_var[:] = siconc
-
-        base_time_wind_waves = forecast_times_wind_waves[0]
-        time_increments_wind_waves = np.arange(forecast_times_wind_waves_hours[0], forecast_times_wind_waves_hours[-1], 1)
-        file_times_wind_waves = base_time_wind_waves + time_increments_wind_waves.astype('timedelta64[h]')
-        date_only_wind_waves = str(base_time_wind_waves.astype('datetime64[D]')).replace('-', '')
-
-        base_time_ocean = forecast_times_ocean[0]
-        time_increments_ocean = np.arange(forecast_times_ocean_hours[0], forecast_times_ocean_hours[-1], 1)
-        file_times_ocean = base_time_ocean + time_increments_ocean.astype('timedelta64[h]')
-        date_only_ocean = str(base_time_ocean.astype('datetime64[D]')).replace('-', '')
-
-        base_time_airT_sw_rad = forecast_times_airT_sw_rad[0]
-        time_increments_airT_sw_rad = np.arange(forecast_times_airT_sw_rad_hours[0], forecast_times_airT_sw_rad_hours[-1], 3)
-        file_times_airT_sw_rad = base_time_airT_sw_rad + time_increments_airT_sw_rad.astype('timedelta64[h]')
-        date_only_airT_sw_rad = str(base_time_airT_sw_rad.astype('datetime64[D]')).replace('-', '')
-
-        wind_dir_errors = []
-        curr_speed_errors = []
-
-        for i in range(ens_num):
-            wind_dir_error = truncated_normal(mean_wind_dir, std_dev_wind_dir, left_trunc_wind_dir, right_trunc_wind_dir)
-            curr_speed_error = sample_scaled_error(mean_curr_speed, std_dev_curr_speed, k_curr_speed, scale_curr_speed, loc_curr_speed, right_trunc_curr_speed)
-            wind_dir_errors.append(wind_dir_error)
-            curr_speed_errors.append(curr_speed_error)
-
-        for i in range(len(bergy_bit_growler_times) - 1):
-            print('Forecasting bergy bits and growlers at ' + str(bergy_bit_growler_times[i]) + ' UTC...')
-            bergy_bit_growler_time = bergy_bit_growler_times[i]
-            before_idx = np.where(file_times_wind_waves <= bergy_bit_growler_time)[0][-1]
-
-            try:
-                after_idx = np.where(file_times_wind_waves > bergy_bit_growler_time)[0][0]
-            except:
-                after_idx = -1
-
-            u_wind_file_before = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
-                                 str(time_increments_wind_waves[before_idx]).zfill(3) + 'H.nc'
-            u_wind_file_after = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
-                                str(time_increments_wind_waves[after_idx]).zfill(3) + 'H.nc'
-            v_wind_file_before = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
-                                 str(time_increments_wind_waves[before_idx]).zfill(3) + 'H.nc'
-            v_wind_file_after = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
-                                str(time_increments_wind_waves[after_idx]).zfill(3) + 'H.nc'
-            Hs_file_before = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + \
+        u_wind_file_before = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
                              str(time_increments_wind_waves[before_idx]).zfill(3) + 'H.nc'
-            Hs_file_after = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + \
+        u_wind_file_after = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + \
                             str(time_increments_wind_waves[after_idx]).zfill(3) + 'H.nc'
-            wave_pd_file_before = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + \
-                                  str(time_increments_wind_waves[before_idx]).zfill(3) + 'H.nc'
-            wave_pd_file_after = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + \
-                                 str(time_increments_wind_waves[after_idx]).zfill(3) + 'H.nc'
+        v_wind_file_before = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
+                             str(time_increments_wind_waves[before_idx]).zfill(3) + 'H.nc'
+        v_wind_file_after = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_VGRD_AGL-10m_LatLon0.25_PT' + \
+                            str(time_increments_wind_waves[after_idx]).zfill(3) + 'H.nc'
+        Hs_file_before = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + \
+                         str(time_increments_wind_waves[before_idx]).zfill(3) + 'H.nc'
+        Hs_file_after = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_HTSGW_Sfc_LatLon0.25_PT' + \
+                        str(time_increments_wind_waves[after_idx]).zfill(3) + 'H.nc'
+        wave_pd_file_before = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + \
+                              str(time_increments_wind_waves[before_idx]).zfill(3) + 'H.nc'
+        wave_pd_file_after = date_only_wind_waves + 'T' + hour_utc_str_wind_waves + 'Z_MSC_GDWPS_MZWPER_Sfc_LatLon0.25_PT' + \
+                             str(time_increments_wind_waves[after_idx]).zfill(3) + 'H.nc'
 
-            forecast_time_wind_waves_before = forecast_times_wind_waves[before_idx]
-            forecast_time_wind_waves_after = forecast_times_wind_waves[after_idx]
+        forecast_time_wind_waves_before = forecast_times_wind_waves[before_idx]
+        forecast_time_wind_waves_after = forecast_times_wind_waves[after_idx]
 
-            before_idx = np.where(file_times_airT_sw_rad <= bergy_bit_growler_time)[0][-1]
+        before_idx = np.where(file_times_airT_sw_rad <= bergy_bit_growler_time)[0][-1]
 
-            try:
-                after_idx = np.where(file_times_airT_sw_rad > bergy_bit_growler_time)[0][0]
-            except:
-                after_idx = -1
+        try:
+            after_idx = np.where(file_times_airT_sw_rad > bergy_bit_growler_time)[0][0]
+        except:
+            after_idx = -1
 
-            airT_file_before = 'CMC_glb_TMP_TGL_2_latlon.15x.15_' + date_only_airT_sw_rad + hour_utc_str_airT_sw_rad + '_P' + \
-                               str(time_increments_airT_sw_rad[before_idx]).zfill(3) + '.nc'
-            airT_file_after = 'CMC_glb_TMP_TGL_2_latlon.15x.15_' + date_only_airT_sw_rad + hour_utc_str_airT_sw_rad + '_P' + \
-                              str(time_increments_airT_sw_rad[after_idx]).zfill(3) + '.nc'
-            solar_rad_file_before = 'CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + date_only_airT_sw_rad + hour_utc_str_airT_sw_rad + '_P' + \
-                                    str(time_increments_airT_sw_rad[before_idx]).zfill(3) + '.nc'
-            solar_rad_file_after = 'CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + date_only_airT_sw_rad + hour_utc_str_airT_sw_rad + '_P' + \
-                                   str(time_increments_airT_sw_rad[after_idx]).zfill(3) + '.nc'
+        airT_file_before = 'CMC_glb_TMP_TGL_2_latlon.15x.15_' + date_only_airT_sw_rad + hour_utc_str_airT_sw_rad + '_P' + \
+                           str(time_increments_airT_sw_rad[before_idx]).zfill(3) + '.nc'
+        airT_file_after = 'CMC_glb_TMP_TGL_2_latlon.15x.15_' + date_only_airT_sw_rad + hour_utc_str_airT_sw_rad + '_P' + \
+                          str(time_increments_airT_sw_rad[after_idx]).zfill(3) + '.nc'
+        solar_rad_file_before = 'CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + date_only_airT_sw_rad + hour_utc_str_airT_sw_rad + '_P' + \
+                                str(time_increments_airT_sw_rad[before_idx]).zfill(3) + '.nc'
+        solar_rad_file_after = 'CMC_glb_DSWRF_SFC_0_latlon.15x.15_' + date_only_airT_sw_rad + hour_utc_str_airT_sw_rad + '_P' + \
+                               str(time_increments_airT_sw_rad[after_idx]).zfill(3) + '.nc'
 
-            forecast_time_airT_sw_rad_before = forecast_times_airT_sw_rad[before_idx]
-            forecast_time_airT_sw_rad_after = forecast_times_airT_sw_rad[after_idx]
+        forecast_time_airT_sw_rad_before = forecast_times_airT_sw_rad[before_idx]
+        forecast_time_airT_sw_rad_after = forecast_times_airT_sw_rad[after_idx]
 
-            before_idx = np.where(file_times_ocean <= bergy_bit_growler_time)[0][-1]
+        before_idx = np.where(file_times_ocean <= bergy_bit_growler_time)[0][-1]
 
-            try:
-                after_idx = np.where(file_times_ocean > bergy_bit_growler_time)[0][0]
-            except:
-                after_idx = -1
+        try:
+            after_idx = np.where(file_times_ocean > bergy_bit_growler_time)[0][0]
+        except:
+            after_idx = -1
 
-            u_curr_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
-                                 str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
-            u_curr_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
-                                str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
-            v_curr_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
-                                 str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
-            v_curr_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
-                                str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
-            salinity_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + \
+        u_curr_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
+                             str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
+        u_curr_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + \
+                            str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
+        v_curr_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
+                             str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
+        v_curr_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOMECRTY_DBS-all_PS5km_P' + \
+                            str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
+        salinity_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + \
+                               str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
+        salinity_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + \
+                              str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
+        pot_temp_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + \
+                               str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
+        pot_temp_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + \
+                              str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
+
+        if si_toggle:
+            siconc_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + \
                                    str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
-            salinity_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOSALINE_DBS-all_PS5km_P' + \
-                                  str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
-            pot_temp_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + \
-                                   str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
-            pot_temp_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_VOTEMPER_DBS-all_PS5km_P' + \
+            siconc_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + \
                                   str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
 
-            if si_toggle:
-                siconc_file_before = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + \
-                                       str(time_increments_ocean[before_idx]).zfill(3) + '.nc'
-                siconc_file_after = date_only_ocean + 'T' + hour_utc_str_ocean + 'Z_MSC_RIOPS_IICECONC_SFC_PS5km_P' + \
-                                      str(time_increments_ocean[after_idx]).zfill(3) + '.nc'
+        forecast_time_ocean_before = forecast_times_ocean[before_idx]
+        forecast_time_ocean_after = forecast_times_ocean[after_idx]
 
-            forecast_time_ocean_before = forecast_times_ocean[before_idx]
-            forecast_time_ocean_after = forecast_times_ocean[after_idx]
+        fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + u_wind_file_before
+        u_wind_data_before = nc.Dataset(fname)
+        u_wind_before = np.squeeze(u_wind_data_before.variables['u10'][:])
+        u_wind_data_before.close()
 
-            fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + u_wind_file_before
-            u_wind_data_before = nc.Dataset(fname)
-            u_wind_before = np.squeeze(u_wind_data_before.variables['u10'][:])
-            u_wind_data_before.close()
+        fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + u_wind_file_after
+        u_wind_data_after = nc.Dataset(fname)
+        u_wind_after = np.squeeze(u_wind_data_after.variables['u10'][:])
+        u_wind_data_after.close()
 
-            fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + u_wind_file_after
-            u_wind_data_after = nc.Dataset(fname)
-            u_wind_after = np.squeeze(u_wind_data_after.variables['u10'][:])
-            u_wind_data_after.close()
+        fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + v_wind_file_before
+        v_wind_data_before = nc.Dataset(fname)
+        v_wind_before = np.squeeze(v_wind_data_before.variables['v10'][:])
+        v_wind_data_before.close()
 
-            fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + v_wind_file_before
-            v_wind_data_before = nc.Dataset(fname)
-            v_wind_before = np.squeeze(v_wind_data_before.variables['v10'][:])
-            v_wind_data_before.close()
+        fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + v_wind_file_after
+        v_wind_data_after = nc.Dataset(fname)
+        v_wind_after = np.squeeze(v_wind_data_after.variables['v10'][:])
+        v_wind_data_after.close()
 
-            fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + v_wind_file_after
-            v_wind_data_after = nc.Dataset(fname)
-            v_wind_after = np.squeeze(v_wind_data_after.variables['v10'][:])
-            v_wind_data_after.close()
+        fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + airT_file_before
+        airT_data_before = nc.Dataset(fname)
+        airT_before = np.squeeze(airT_data_before.variables['t2m'][:]) - 273.15
+        airT_data_before.close()
 
-            fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + airT_file_before
-            airT_data_before = nc.Dataset(fname)
-            airT_before = np.squeeze(airT_data_before.variables['t2m'][:]) - 273.15
-            airT_data_before.close()
+        fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + airT_file_after
+        airT_data_after = nc.Dataset(fname)
+        airT_after = np.squeeze(airT_data_after.variables['t2m'][:]) - 273.15
+        airT_data_after.close()
 
-            fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + airT_file_after
-            airT_data_after = nc.Dataset(fname)
-            airT_after = np.squeeze(airT_data_after.variables['t2m'][:]) - 273.15
-            airT_data_after.close()
+        fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + solar_rad_file_before
+        solar_rad_data_before = nc.Dataset(fname)
+        solar_rad_before = np.squeeze(solar_rad_data_before.variables['ssrd'][:])
+        solar_rad_data_before.close()
 
-            fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + solar_rad_file_before
-            solar_rad_data_before = nc.Dataset(fname)
-            solar_rad_before = np.squeeze(solar_rad_data_before.variables['ssrd'][:])
-            solar_rad_data_before.close()
+        fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + solar_rad_file_after
+        solar_rad_data_after = nc.Dataset(fname)
+        solar_rad_after = np.squeeze(solar_rad_data_after.variables['ssrd'][:])
+        solar_rad_data_after.close()
 
-            fname = rootpath_to_metdata + 'GDPS_airT_sw_rad_forecast_files/' + dirname_airT_sw_rad + '/' + solar_rad_file_after
-            solar_rad_data_after = nc.Dataset(fname)
-            solar_rad_after = np.squeeze(solar_rad_data_after.variables['ssrd'][:])
-            solar_rad_data_after.close()
+        fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + Hs_file_before
+        Hs_data_before = nc.Dataset(fname)
+        Hs_before = np.squeeze(Hs_data_before.variables['swh'][:])
+        Hs_data_before.close()
 
-            fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + Hs_file_before
-            Hs_data_before = nc.Dataset(fname)
-            Hs_before = np.squeeze(Hs_data_before.variables['swh'][:])
-            Hs_data_before.close()
+        fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + Hs_file_after
+        Hs_data_after = nc.Dataset(fname)
+        Hs_after = np.squeeze(Hs_data_after.variables['swh'][:])
+        Hs_data_after.close()
 
-            fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + Hs_file_after
-            Hs_data_after = nc.Dataset(fname)
-            Hs_after = np.squeeze(Hs_data_after.variables['swh'][:])
-            Hs_data_after.close()
+        fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + wave_pd_file_before
+        wave_pd_data_before = nc.Dataset(fname)
+        wave_pd_before = np.squeeze(wave_pd_data_before.variables['mp2'][:])
+        wave_pd_data_before.close()
 
-            fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + wave_pd_file_before
-            wave_pd_data_before = nc.Dataset(fname)
-            wave_pd_before = np.squeeze(wave_pd_data_before.variables['mp2'][:])
-            wave_pd_data_before.close()
+        fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + wave_pd_file_after
+        wave_pd_data_after = nc.Dataset(fname)
+        wave_pd_after = np.squeeze(wave_pd_data_after.variables['mp2'][:])
+        wave_pd_data_after.close()
 
-            fname = rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + wave_pd_file_after
-            wave_pd_data_after = nc.Dataset(fname)
-            wave_pd_after = np.squeeze(wave_pd_data_after.variables['mp2'][:])
-            wave_pd_data_after.close()
+        fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + u_curr_file_before
+        u_curr_data_before = nc.Dataset(fname)
+        u_curr_before = np.squeeze(u_curr_data_before.variables['vozocrtx'][:])
+        u_curr_data_before.close()
 
-            fname = directory + '/' + u_curr_file_before
-            u_curr_data_before = nc.Dataset(fname)
-            u_curr_before = np.squeeze(u_curr_data_before.variables['vozocrtx'][:])
-            u_curr_data_before.close()
+        fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + u_curr_file_after
+        u_curr_data_after = nc.Dataset(fname)
+        u_curr_after = np.squeeze(u_curr_data_after.variables['vozocrtx'][:])
+        u_curr_data_after.close()
 
-            fname = directory + '/' + u_curr_file_after
-            u_curr_data_after = nc.Dataset(fname)
-            u_curr_after = np.squeeze(u_curr_data_after.variables['vozocrtx'][:])
-            u_curr_data_after.close()
+        fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + v_curr_file_before
+        v_curr_data_before = nc.Dataset(fname)
+        v_curr_before = np.squeeze(v_curr_data_before.variables['vomecrty'][:])
+        v_curr_data_before.close()
 
-            fname = directory + '/' + v_curr_file_before
-            v_curr_data_before = nc.Dataset(fname)
-            v_curr_before = np.squeeze(v_curr_data_before.variables['vomecrty'][:])
-            v_curr_data_before.close()
+        fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + v_curr_file_after
+        v_curr_data_after = nc.Dataset(fname)
+        v_curr_after = np.squeeze(v_curr_data_after.variables['vomecrty'][:])
+        v_curr_data_after.close()
 
-            fname = directory + '/' + v_curr_file_after
-            v_curr_data_after = nc.Dataset(fname)
-            v_curr_after = np.squeeze(v_curr_data_after.variables['vomecrty'][:])
-            v_curr_data_after.close()
+        fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + salinity_file_before
+        salinity_data_before = nc.Dataset(fname)
+        salinity_before = np.squeeze(salinity_data_before.variables['vosaline'][:])
+        salinity_data_before.close()
 
-            fname = directory + '/' + salinity_file_before
-            salinity_data_before = nc.Dataset(fname)
-            salinity_before = np.squeeze(salinity_data_before.variables['vosaline'][:])
-            salinity_data_before.close()
+        fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + salinity_file_after
+        salinity_data_after = nc.Dataset(fname)
+        salinity_after = np.squeeze(salinity_data_after.variables['vosaline'][:])
+        salinity_data_after.close()
 
-            fname = directory + '/' + salinity_file_after
-            salinity_data_after = nc.Dataset(fname)
-            salinity_after = np.squeeze(salinity_data_after.variables['vosaline'][:])
-            salinity_data_after.close()
+        fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + pot_temp_file_before
+        pot_temp_data_before = nc.Dataset(fname)
+        pot_temp_before = np.squeeze(pot_temp_data_before.variables['votemper'][:])
+        pot_temp_data_before.close()
 
-            fname = directory + '/' + pot_temp_file_before
-            pot_temp_data_before = nc.Dataset(fname)
-            pot_temp_before = np.squeeze(pot_temp_data_before.variables['votemper'][:])
-            pot_temp_data_before.close()
+        fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + pot_temp_file_after
+        pot_temp_data_after = nc.Dataset(fname)
+        pot_temp_after = np.squeeze(pot_temp_data_after.variables['votemper'][:])
+        pot_temp_data_after.close()
 
-            fname = directory + '/' + pot_temp_file_after
-            pot_temp_data_after = nc.Dataset(fname)
-            pot_temp_after = np.squeeze(pot_temp_data_after.variables['votemper'][:])
-            pot_temp_data_after.close()
+        if si_toggle:
+            fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + siconc_file_before
+            siconc_data_before = nc.Dataset(fname)
+            siconc_before = np.squeeze(siconc_data_before.variables['iiceconc'][:])
+            siconc_data_before.close()
 
-            if si_toggle:
-                fname = directory + '/' + siconc_file_before
-                siconc_data_before = nc.Dataset(fname)
-                siconc_before = np.squeeze(siconc_data_before.variables['iiceconc'][:])
-                siconc_data_before.close()
+            fname = rootpath_to_metdata + 'RIOPS_ocean_forecast_files/' + dirname_ocean + '/' + siconc_file_after
+            siconc_data_after = nc.Dataset(fname)
+            siconc_after = np.squeeze(siconc_data_after.variables['iiceconc'][:])
+            siconc_data_after.close()
 
-                fname = directory + '/' + siconc_file_after
-                siconc_data_after = nc.Dataset(fname)
-                siconc_after = np.squeeze(siconc_data_after.variables['iiceconc'][:])
-                siconc_data_after.close()
+        f_u_wind_before = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), u_wind_before, method='linear', bounds_error=True, fill_value=np.nan)
+        f_u_wind_after = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), u_wind_after, method='linear', bounds_error=True, fill_value=np.nan)
 
-            f_u_wind_before = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), u_wind_before, method='linear', bounds_error=True, fill_value=np.nan)
-            f_u_wind_after = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), u_wind_after, method='linear', bounds_error=True, fill_value=np.nan)
+        f_v_wind_before = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), v_wind_before, method='linear', bounds_error=True, fill_value=np.nan)
+        f_v_wind_after = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), v_wind_after, method='linear', bounds_error=True, fill_value=np.nan)
 
-            f_v_wind_before = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), v_wind_before, method='linear', bounds_error=True, fill_value=np.nan)
-            f_v_wind_after = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), v_wind_after, method='linear', bounds_error=True, fill_value=np.nan)
+        f_Hs_before = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), Hs_before, method='nearest', bounds_error=True, fill_value=np.nan)
+        f_Hs_after = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), Hs_after, method='nearest', bounds_error=True, fill_value=np.nan)
 
-            f_Hs_before = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), Hs_before, method='nearest', bounds_error=True, fill_value=np.nan)
-            f_Hs_after = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), Hs_after, method='nearest', bounds_error=True, fill_value=np.nan)
+        f_wave_pd_before = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), wave_pd_before, method='nearest', bounds_error=True, fill_value=np.nan)
+        f_wave_pd_after = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), wave_pd_after, method='nearest', bounds_error=True, fill_value=np.nan)
 
-            f_wave_pd_before = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), wave_pd_before, method='nearest', bounds_error=True, fill_value=np.nan)
-            f_wave_pd_after = RegularGridInterpolator((lat_wind_waves, lon_wind_waves), wave_pd_after, method='nearest', bounds_error=True, fill_value=np.nan)
+        f_airT_before = RegularGridInterpolator((lat_airT_sw_rad, lon_airT_sw_rad), airT_before, method='linear', bounds_error=True, fill_value=np.nan)
+        f_airT_after = RegularGridInterpolator((lat_airT_sw_rad, lon_airT_sw_rad), airT_after, method='linear', bounds_error=True, fill_value=np.nan)
 
-            f_airT_before = RegularGridInterpolator((lat_airT_sw_rad, lon_airT_sw_rad), airT_before, method='linear', bounds_error=True, fill_value=np.nan)
-            f_airT_after = RegularGridInterpolator((lat_airT_sw_rad, lon_airT_sw_rad), airT_after, method='linear', bounds_error=True, fill_value=np.nan)
+        f_solar_rad_before = RegularGridInterpolator((lat_airT_sw_rad, lon_airT_sw_rad), solar_rad_before, method='linear', bounds_error=True, fill_value=np.nan)
+        f_solar_rad_after = RegularGridInterpolator((lat_airT_sw_rad, lon_airT_sw_rad), solar_rad_after, method='linear', bounds_error=True, fill_value=np.nan)
 
-            f_solar_rad_before = RegularGridInterpolator((lat_airT_sw_rad, lon_airT_sw_rad), solar_rad_before, method='linear', bounds_error=True, fill_value=np.nan)
-            f_solar_rad_after = RegularGridInterpolator((lat_airT_sw_rad, lon_airT_sw_rad), solar_rad_after, method='linear', bounds_error=True, fill_value=np.nan)
+        solar_rad_hr_before = int(solar_rad_file_before[-6:-3])
+        solar_rad_hr_after = int(solar_rad_file_after[-6:-3])
 
-            solar_rad_hr_before = int(solar_rad_file_before[-6:-3])
-            solar_rad_hr_after = int(solar_rad_file_after[-6:-3])
+        t_new = (bergy_bit_growler_time - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
 
-            t_new = (bergy_bit_growler_time - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+        t1 = (forecast_time_wind_waves_before - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+        t2 = (forecast_time_wind_waves_after - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+        weight_wind_waves = (t_new - t1) / (t2 - t1)
 
-            t1 = (forecast_time_wind_waves_before - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-            t2 = (forecast_time_wind_waves_after - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-            weight_wind_waves = (t_new - t1) / (t2 - t1)
+        t1 = (forecast_time_ocean_before - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+        t2 = (forecast_time_ocean_after - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+        weight_ocean = (t_new - t1) / (t2 - t1)
 
-            t1 = (forecast_time_ocean_before - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-            t2 = (forecast_time_ocean_after - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-            weight_ocean = (t_new - t1) / (t2 - t1)
+        t1 = (forecast_time_airT_sw_rad_before - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+        t2 = (forecast_time_airT_sw_rad_after - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+        weight_airT_sw_rad = (t_new - t1) / (t2 - t1)
 
-            t1 = (forecast_time_airT_sw_rad_before - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-            t2 = (forecast_time_airT_sw_rad_after - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-            weight_airT_sw_rad = (t_new - t1) / (t2 - t1)
+        for k in range(len(iceberg_lats0)):
+            print('Forecasting bergy bits and growlers for iceberg ' + str(iceberg_ids[k]) + '...')
 
-            for k in range(len(iceberg_lats0)):
-                print('Forecasting bergy bits and growlers for iceberg ' + str(iceberg_ids[k]) + '...')
+            for m in range(ens_num):
+                print('Forecasting ensemble track number ' + str(m + 1) + '...')
+                bergy_bit_lat = bergy_bit_lats[i, k, m]
+                bergy_bit_lon = bergy_bit_lons[i, k, m]
+                bergy_bit_u = bergy_bit_us[i, k, m]
+                bergy_bit_v = bergy_bit_vs[i, k, m]
+                bergy_bit_length = bergy_bit_lengths[i, k, m]
+                bergy_bit_draft = bergy_bit_drafts[i, k, m]
+                bergy_bit_mass = bergy_bit_masses[i, k, m]
+                bergy_bit_grounded_status = bergy_bit_grounded_statuses[i, k, m]
 
-                for m in range(ens_num):
-                    print('Forecasting ensemble track number ' + str(m + 1) + '...')
-                    bergy_bit_lat = bergy_bit_lats[i, k, m]
-                    bergy_bit_lon = bergy_bit_lons[i, k, m]
-                    bergy_bit_u = bergy_bit_us[i, k, m]
-                    bergy_bit_v = bergy_bit_vs[i, k, m]
-                    bergy_bit_length = bergy_bit_lengths[i, k, m]
-                    bergy_bit_draft = bergy_bit_drafts[i, k, m]
-                    bergy_bit_mass = bergy_bit_masses[i, k, m]
-                    bergy_bit_grounded_status = bergy_bit_grounded_statuses[i, k, m]
+                growler_lat = growler_lats[i, k, m]
+                growler_lon = growler_lons[i, k, m]
+                growler_u = growler_us[i, k, m]
+                growler_v = growler_vs[i, k, m]
+                growler_length = growler_lengths[i, k, m]
+                growler_draft = growler_drafts[i, k, m]
+                growler_mass = growler_masses[i, k, m]
+                growler_grounded_status = growler_grounded_statuses[i, k, m]
 
-                    growler_lat = growler_lats[i, k, m]
-                    growler_lon = growler_lons[i, k, m]
-                    growler_u = growler_us[i, k, m]
-                    growler_v = growler_vs[i, k, m]
-                    growler_length = growler_lengths[i, k, m]
-                    growler_draft = growler_drafts[i, k, m]
-                    growler_mass = growler_masses[i, k, m]
-                    growler_grounded_status = growler_grounded_statuses[i, k, m]
+                u_wind_before_bb = float(f_u_wind_before([bergy_bit_lat, bergy_bit_lon + 360.]))
+                u_wind_after_bb = float(f_u_wind_after([bergy_bit_lat, bergy_bit_lon + 360.]))
+                u_wind_bb = u_wind_before_bb + weight_wind_waves * (u_wind_after_bb - u_wind_before_bb)
 
-                    u_wind_before_bb = float(f_u_wind_before([bergy_bit_lat, bergy_bit_lon + 360.]))
-                    u_wind_after_bb = float(f_u_wind_after([bergy_bit_lat, bergy_bit_lon + 360.]))
-                    u_wind_bb = u_wind_before_bb + weight_wind_waves * (u_wind_after_bb - u_wind_before_bb)
+                v_wind_before_bb = float(f_v_wind_before([bergy_bit_lat, bergy_bit_lon + 360.]))
+                v_wind_after_bb = float(f_v_wind_after([bergy_bit_lat, bergy_bit_lon + 360.]))
+                v_wind_bb = v_wind_before_bb + weight_wind_waves * (v_wind_after_bb - v_wind_before_bb)
 
-                    v_wind_before_bb = float(f_v_wind_before([bergy_bit_lat, bergy_bit_lon + 360.]))
-                    v_wind_after_bb = float(f_v_wind_after([bergy_bit_lat, bergy_bit_lon + 360.]))
-                    v_wind_bb = v_wind_before_bb + weight_wind_waves * (v_wind_after_bb - v_wind_before_bb)
+                Hs_before_bb = float(f_Hs_before([bergy_bit_lat, bergy_bit_lon + 360.]))
+                Hs_after_bb = float(f_Hs_after([bergy_bit_lat, bergy_bit_lon + 360.]))
+                Hs_bb = Hs_before_bb + weight_wind_waves * (Hs_after_bb - Hs_before_bb)
 
-                    Hs_before_bb = float(f_Hs_before([bergy_bit_lat, bergy_bit_lon + 360.]))
-                    Hs_after_bb = float(f_Hs_after([bergy_bit_lat, bergy_bit_lon + 360.]))
-                    Hs_bb = Hs_before_bb + weight_wind_waves * (Hs_after_bb - Hs_before_bb)
+                u_wind_before_growler = float(f_u_wind_before([growler_lat, growler_lon + 360.]))
+                u_wind_after_growler = float(f_u_wind_after([growler_lat, growler_lon + 360.]))
+                u_wind_growler = u_wind_before_growler + weight_wind_waves * (u_wind_after_growler - u_wind_before_growler)
 
-                    u_wind_before_growler = float(f_u_wind_before([growler_lat, growler_lon + 360.]))
-                    u_wind_after_growler = float(f_u_wind_after([growler_lat, growler_lon + 360.]))
-                    u_wind_growler = u_wind_before_growler + weight_wind_waves * (u_wind_after_growler - u_wind_before_growler)
+                v_wind_before_growler = float(f_v_wind_before([growler_lat, growler_lon + 360.]))
+                v_wind_after_growler = float(f_v_wind_after([growler_lat, growler_lon + 360.]))
+                v_wind_growler = v_wind_before_growler + weight_wind_waves * (v_wind_after_growler - v_wind_before_growler)
 
-                    v_wind_before_growler = float(f_v_wind_before([growler_lat, growler_lon + 360.]))
-                    v_wind_after_growler = float(f_v_wind_after([growler_lat, growler_lon + 360.]))
-                    v_wind_growler = v_wind_before_growler + weight_wind_waves * (v_wind_after_growler - v_wind_before_growler)
+                Hs_before_growler = float(f_Hs_before([growler_lat, growler_lon + 360.]))
+                Hs_after_growler = float(f_Hs_after([growler_lat, growler_lon + 360.]))
+                Hs_growler = Hs_before_growler + weight_wind_waves * (Hs_after_growler - Hs_before_growler)
 
-                    Hs_before_growler = float(f_Hs_before([growler_lat, growler_lon + 360.]))
-                    Hs_after_growler = float(f_Hs_after([growler_lat, growler_lon + 360.]))
-                    Hs_growler = Hs_before_growler + weight_wind_waves * (Hs_after_growler - Hs_before_growler)
+                wave_pd_before_bb = float(f_wave_pd_before([bergy_bit_lat, bergy_bit_lon + 360.]))
+                wave_pd_after_bb = float(f_wave_pd_after([bergy_bit_lat, bergy_bit_lon + 360.]))
+                wave_pd_bb = wave_pd_before_bb + weight_wind_waves * (wave_pd_after_bb - wave_pd_before_bb)
 
-                    wave_pd_before_bb = float(f_wave_pd_before([bergy_bit_lat, bergy_bit_lon + 360.]))
-                    wave_pd_after_bb = float(f_wave_pd_after([bergy_bit_lat, bergy_bit_lon + 360.]))
-                    wave_pd_bb = wave_pd_before_bb + weight_wind_waves * (wave_pd_after_bb - wave_pd_before_bb)
+                wave_pd_before_growler = float(f_wave_pd_before([growler_lat, growler_lon + 360.]))
+                wave_pd_after_growler = float(f_wave_pd_after([growler_lat, growler_lon + 360.]))
+                wave_pd_growler = wave_pd_before_growler + weight_wind_waves * (wave_pd_after_growler - wave_pd_before_growler)
 
-                    wave_pd_before_growler = float(f_wave_pd_before([growler_lat, growler_lon + 360.]))
-                    wave_pd_after_growler = float(f_wave_pd_after([growler_lat, growler_lon + 360.]))
-                    wave_pd_growler = wave_pd_before_growler + weight_wind_waves * (wave_pd_after_growler - wave_pd_before_growler)
+                airT_before_bb = float(f_airT_before([bergy_bit_lat, bergy_bit_lon]))
+                airT_after_bb = float(f_airT_after([bergy_bit_lat, bergy_bit_lon]))
+                airT_bb = airT_before_bb + weight_airT_sw_rad * (airT_after_bb - airT_before_bb)
 
-                    airT_before_bb = float(f_airT_before([bergy_bit_lat, bergy_bit_lon]))
-                    airT_after_bb = float(f_airT_after([bergy_bit_lat, bergy_bit_lon]))
-                    airT_bb = airT_before_bb + weight_airT_sw_rad * (airT_after_bb - airT_before_bb)
+                airT_before_growler = float(f_airT_before([growler_lat, growler_lon]))
+                airT_after_growler = float(f_airT_after([growler_lat, growler_lon]))
+                airT_growler = airT_before_growler + weight_airT_sw_rad * (airT_after_growler - airT_before_growler)
 
-                    airT_before_growler = float(f_airT_before([growler_lat, growler_lon]))
-                    airT_after_growler = float(f_airT_after([growler_lat, growler_lon]))
-                    airT_growler = airT_before_growler + weight_airT_sw_rad * (airT_after_growler - airT_before_growler)
+                if solar_rad_hr_before == 0:
+                    solar_rad_before_bb = float(f_solar_rad_before([bergy_bit_lat, bergy_bit_lon]))
+                    solar_rad_before_growler = float(f_solar_rad_before([growler_lat, growler_lon]))
+                else:
+                    solar_rad_before_bb = float(f_solar_rad_before([bergy_bit_lat, bergy_bit_lon]) / (solar_rad_hr_before * 3600.))
+                    solar_rad_before_growler = float(f_solar_rad_before([growler_lat, growler_lon]) / (solar_rad_hr_before * 3600.))
 
-                    if solar_rad_hr_before == 0:
-                        solar_rad_before_bb = float(f_solar_rad_before([bergy_bit_lat, bergy_bit_lon]))
-                        solar_rad_before_growler = float(f_solar_rad_before([growler_lat, growler_lon]))
-                    else:
-                        solar_rad_before_bb = float(f_solar_rad_before([bergy_bit_lat, bergy_bit_lon]) / (solar_rad_hr_before * 3600.))
-                        solar_rad_before_growler = float(f_solar_rad_before([growler_lat, growler_lon]) / (solar_rad_hr_before * 3600.))
+                if solar_rad_hr_after == 0:
+                    solar_rad_after_bb = float(f_solar_rad_after([bergy_bit_lat, bergy_bit_lon]))
+                    solar_rad_after_growler = float(f_solar_rad_after([growler_lat, growler_lon]))
+                else:
+                    solar_rad_after_bb = float(f_solar_rad_after([bergy_bit_lat, bergy_bit_lon]) / (solar_rad_hr_after * 3600.))
+                    solar_rad_after_growler = float(f_solar_rad_after([growler_lat, growler_lon]) / (solar_rad_hr_after * 3600.))
 
-                    if solar_rad_hr_after == 0:
-                        solar_rad_after_bb = float(f_solar_rad_after([bergy_bit_lat, bergy_bit_lon]))
-                        solar_rad_after_growler = float(f_solar_rad_after([growler_lat, growler_lon]))
-                    else:
-                        solar_rad_after_bb = float(f_solar_rad_after([bergy_bit_lat, bergy_bit_lon]) / (solar_rad_hr_after * 3600.))
-                        solar_rad_after_growler = float(f_solar_rad_after([growler_lat, growler_lon]) / (solar_rad_hr_after * 3600.))
+                if solar_rad_before_bb < 0:
+                    solar_rad_before_bb = -solar_rad_before_bb
 
-                    if solar_rad_before_bb < 0:
-                        solar_rad_before_bb = -solar_rad_before_bb
+                if solar_rad_before_growler < 0:
+                    solar_rad_before_growler = -solar_rad_before_growler
 
-                    if solar_rad_before_growler < 0:
-                        solar_rad_before_growler = -solar_rad_before_growler
+                if solar_rad_after_bb < 0:
+                    solar_rad_after_bb = -solar_rad_after_bb
 
-                    if solar_rad_after_bb < 0:
-                        solar_rad_after_bb = -solar_rad_after_bb
+                if solar_rad_after_growler < 0:
+                    solar_rad_after_growler = -solar_rad_after_growler
 
-                    if solar_rad_after_growler < 0:
-                        solar_rad_after_growler = -solar_rad_after_growler
+                if solar_rad_before_bb < 0 or np.isnan(solar_rad_before_bb):
+                    solar_rad_before_bb = 0.
 
-                    if solar_rad_before_bb < 0 or np.isnan(solar_rad_before_bb):
-                        solar_rad_before_bb = 0.
+                if solar_rad_before_growler < 0 or np.isnan(solar_rad_before_growler):
+                    solar_rad_before_growler = 0.
 
-                    if solar_rad_before_growler < 0 or np.isnan(solar_rad_before_growler):
-                        solar_rad_before_growler = 0.
+                if solar_rad_after_bb < 0 or np.isnan(solar_rad_after_bb):
+                    solar_rad_after_bb = 0.
 
-                    if solar_rad_after_bb < 0 or np.isnan(solar_rad_after_bb):
-                        solar_rad_after_bb = 0.
+                if solar_rad_after_growler < 0 or np.isnan(solar_rad_after_growler):
+                    solar_rad_after_growler = 0.
 
-                    if solar_rad_after_growler < 0 or np.isnan(solar_rad_after_growler):
-                        solar_rad_after_growler = 0.
+                solar_rad_bb = solar_rad_before_bb + weight_airT_sw_rad * (solar_rad_after_bb - solar_rad_before_bb)
+                solar_rad_growler = solar_rad_before_growler + weight_airT_sw_rad * (solar_rad_after_growler - solar_rad_before_growler)
 
-                    solar_rad_bb = solar_rad_before_bb + weight_airT_sw_rad * (solar_rad_after_bb - solar_rad_before_bb)
-                    solar_rad_growler = solar_rad_before_growler + weight_airT_sw_rad * (solar_rad_after_growler - solar_rad_before_growler)
+                if bergy_bit_draft > 0:
+                    try:
+                        loc_depth = np.argwhere(ocean_depth <= bergy_bit_draft).flatten()
 
-                    if bergy_bit_draft > 0:
-                        try:
-                            loc_depth = np.argwhere(ocean_depth <= bergy_bit_draft).flatten()
+                        if loc_depth[-1] + 1 < len(ocean_depth):
+                            loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
 
-                            if loc_depth[-1] + 1 < len(ocean_depth):
-                                loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
-
-                            depth_curr_bb = ocean_depth[loc_depth]
-                            depth_curr_bb = depth_curr_bb.tolist()
-                            depth_curr_bb_interp = np.arange(0., bergy_bit_draft, 0.001)
-                        except:
-                            depth_curr_bb = list(ocean_depth[:1])
-                            depth_curr_bb_interp = np.arange(0., bergy_bit_draft, 0.001)
-                    else:
+                        depth_curr_bb = ocean_depth[loc_depth]
+                        depth_curr_bb = depth_curr_bb.tolist()
+                        depth_curr_bb_interp = np.arange(0., bergy_bit_draft, 0.001)
+                    except:
                         depth_curr_bb = list(ocean_depth[:1])
-                        depth_curr_bb_interp = np.arange(0., ocean_depth[-1], 0.001)
+                        depth_curr_bb_interp = np.arange(0., bergy_bit_draft, 0.001)
+                else:
+                    depth_curr_bb = list(ocean_depth[:1])
+                    depth_curr_bb_interp = np.arange(0., ocean_depth[-1], 0.001)
 
-                    if growler_draft > 0:
-                        try:
-                            loc_depth = np.argwhere(ocean_depth <= growler_draft).flatten()
+                if growler_draft > 0:
+                    try:
+                        loc_depth = np.argwhere(ocean_depth <= growler_draft).flatten()
 
-                            if loc_depth[-1] + 1 < len(ocean_depth):
-                                loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
+                        if loc_depth[-1] + 1 < len(ocean_depth):
+                            loc_depth = np.append(loc_depth, loc_depth[-1] + 1)
 
-                            depth_curr_growler = ocean_depth[loc_depth]
-                            depth_curr_growler = depth_curr_growler.tolist()
-                            depth_curr_growler_interp = np.arange(0., growler_draft, 0.001)
-                        except:
-                            depth_curr_growler = list(ocean_depth[:1])
-                            depth_curr_growler_interp = np.arange(0., growler_draft, 0.001)
-                    else:
+                        depth_curr_growler = ocean_depth[loc_depth]
+                        depth_curr_growler = depth_curr_growler.tolist()
+                        depth_curr_growler_interp = np.arange(0., growler_draft, 0.001)
+                    except:
                         depth_curr_growler = list(ocean_depth[:1])
-                        depth_curr_growler_interp = np.arange(0., ocean_depth[-1], 0.001)
+                        depth_curr_growler_interp = np.arange(0., growler_draft, 0.001)
+                else:
+                    depth_curr_growler = list(ocean_depth[:1])
+                    depth_curr_growler_interp = np.arange(0., ocean_depth[-1], 0.001)
 
-                    u_curr_before_bb_depth_list = []
-                    u_curr_after_bb_depth_list = []
-                    v_curr_before_bb_depth_list = []
-                    v_curr_after_bb_depth_list = []
-                    salinity_before_bb_depth_list = []
-                    salinity_after_bb_depth_list = []
-                    pot_temp_before_bb_depth_list = []
-                    pot_temp_after_bb_depth_list = []
+                u_curr_before_bb_depth_list = []
+                u_curr_after_bb_depth_list = []
+                v_curr_before_bb_depth_list = []
+                v_curr_after_bb_depth_list = []
+                salinity_before_bb_depth_list = []
+                salinity_after_bb_depth_list = []
+                pot_temp_before_bb_depth_list = []
+                pot_temp_after_bb_depth_list = []
 
-                    u_curr_before_growler_depth_list = []
-                    u_curr_after_growler_depth_list = []
-                    v_curr_before_growler_depth_list = []
-                    v_curr_after_growler_depth_list = []
-                    salinity_before_growler_depth_list = []
-                    salinity_after_growler_depth_list = []
-                    pot_temp_before_growler_depth_list = []
-                    pot_temp_after_growler_depth_list = []
+                u_curr_before_growler_depth_list = []
+                u_curr_after_growler_depth_list = []
+                v_curr_before_growler_depth_list = []
+                v_curr_after_growler_depth_list = []
+                salinity_before_growler_depth_list = []
+                salinity_after_growler_depth_list = []
+                pot_temp_before_growler_depth_list = []
+                pot_temp_after_growler_depth_list = []
 
-                    for n in range(len(depth_curr_bb)):
-                        u_curr_before_select = np.squeeze(u_curr_before[n, :, :])
-                        u_curr_after_select = np.squeeze(u_curr_after[n, :, :])
-                        u_curr_before_temp = griddata(points_ocean, u_curr_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
-                        u_curr_after_temp = griddata(points_ocean, u_curr_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
-                        u_curr_before_bb_depth_list.append(u_curr_before_temp)
-                        u_curr_after_bb_depth_list.append(u_curr_after_temp)
-                        v_curr_before_select = np.squeeze(v_curr_before[n, :, :])
-                        v_curr_after_select = np.squeeze(v_curr_after[n, :, :])
-                        v_curr_before_temp = griddata(points_ocean, v_curr_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
-                        v_curr_after_temp = griddata(points_ocean, v_curr_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
-                        v_curr_before_bb_depth_list.append(v_curr_before_temp)
-                        v_curr_after_bb_depth_list.append(v_curr_after_temp)
-                        salinity_before_select = np.squeeze(salinity_before[n, :, :])
-                        salinity_after_select = np.squeeze(salinity_after[n, :, :])
-                        salinity_before_temp = griddata(points_ocean, salinity_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
-                        salinity_after_temp = griddata(points_ocean, salinity_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
-                        salinity_before_bb_depth_list.append(salinity_before_temp)
-                        salinity_after_bb_depth_list.append(salinity_after_temp)
-                        pot_temp_before_select = np.squeeze(pot_temp_before[n, :, :])
-                        pot_temp_after_select = np.squeeze(pot_temp_after[n, :, :])
-                        pot_temp_before_temp = griddata(points_ocean, pot_temp_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
-                        pot_temp_after_temp = griddata(points_ocean, pot_temp_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
-                        pot_temp_before_bb_depth_list.append(pot_temp_before_temp)
-                        pot_temp_after_bb_depth_list.append(pot_temp_after_temp)
+                for n in range(len(depth_curr_bb)):
+                    u_curr_before_select = np.squeeze(u_curr_before[n, :, :])
+                    u_curr_after_select = np.squeeze(u_curr_after[n, :, :])
+                    u_curr_before_temp = griddata(points_ocean, u_curr_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
+                    u_curr_after_temp = griddata(points_ocean, u_curr_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
+                    u_curr_before_bb_depth_list.append(u_curr_before_temp)
+                    u_curr_after_bb_depth_list.append(u_curr_after_temp)
+                    v_curr_before_select = np.squeeze(v_curr_before[n, :, :])
+                    v_curr_after_select = np.squeeze(v_curr_after[n, :, :])
+                    v_curr_before_temp = griddata(points_ocean, v_curr_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
+                    v_curr_after_temp = griddata(points_ocean, v_curr_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
+                    v_curr_before_bb_depth_list.append(v_curr_before_temp)
+                    v_curr_after_bb_depth_list.append(v_curr_after_temp)
+                    salinity_before_select = np.squeeze(salinity_before[n, :, :])
+                    salinity_after_select = np.squeeze(salinity_after[n, :, :])
+                    salinity_before_temp = griddata(points_ocean, salinity_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
+                    salinity_after_temp = griddata(points_ocean, salinity_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
+                    salinity_before_bb_depth_list.append(salinity_before_temp)
+                    salinity_after_bb_depth_list.append(salinity_after_temp)
+                    pot_temp_before_select = np.squeeze(pot_temp_before[n, :, :])
+                    pot_temp_after_select = np.squeeze(pot_temp_after[n, :, :])
+                    pot_temp_before_temp = griddata(points_ocean, pot_temp_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
+                    pot_temp_after_temp = griddata(points_ocean, pot_temp_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
+                    pot_temp_before_bb_depth_list.append(pot_temp_before_temp)
+                    pot_temp_after_bb_depth_list.append(pot_temp_after_temp)
 
-                    for n in range(len(depth_curr_growler)):
-                        u_curr_before_select = np.squeeze(u_curr_before[n, :, :])
-                        u_curr_after_select = np.squeeze(u_curr_after[n, :, :])
-                        u_curr_before_temp = griddata(points_ocean, u_curr_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
-                        u_curr_after_temp = griddata(points_ocean, u_curr_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
-                        u_curr_before_growler_depth_list.append(u_curr_before_temp)
-                        u_curr_after_growler_depth_list.append(u_curr_after_temp)
-                        v_curr_before_select = np.squeeze(v_curr_before[n, :, :])
-                        v_curr_after_select = np.squeeze(v_curr_after[n, :, :])
-                        v_curr_before_temp = griddata(points_ocean, v_curr_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
-                        v_curr_after_temp = griddata(points_ocean, v_curr_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
-                        v_curr_before_growler_depth_list.append(v_curr_before_temp)
-                        v_curr_after_growler_depth_list.append(v_curr_after_temp)
-                        salinity_before_select = np.squeeze(salinity_before[n, :, :])
-                        salinity_after_select = np.squeeze(salinity_after[n, :, :])
-                        salinity_before_temp = griddata(points_ocean, salinity_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
-                        salinity_after_temp = griddata(points_ocean, salinity_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
-                        salinity_before_growler_depth_list.append(salinity_before_temp)
-                        salinity_after_growler_depth_list.append(salinity_after_temp)
-                        pot_temp_before_select = np.squeeze(pot_temp_before[n, :, :])
-                        pot_temp_after_select = np.squeeze(pot_temp_after[n, :, :])
-                        pot_temp_before_temp = griddata(points_ocean, pot_temp_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
-                        pot_temp_after_temp = griddata(points_ocean, pot_temp_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
-                        pot_temp_before_growler_depth_list.append(pot_temp_before_temp)
-                        pot_temp_after_growler_depth_list.append(pot_temp_after_temp)
+                for n in range(len(depth_curr_growler)):
+                    u_curr_before_select = np.squeeze(u_curr_before[n, :, :])
+                    u_curr_after_select = np.squeeze(u_curr_after[n, :, :])
+                    u_curr_before_temp = griddata(points_ocean, u_curr_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
+                    u_curr_after_temp = griddata(points_ocean, u_curr_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
+                    u_curr_before_growler_depth_list.append(u_curr_before_temp)
+                    u_curr_after_growler_depth_list.append(u_curr_after_temp)
+                    v_curr_before_select = np.squeeze(v_curr_before[n, :, :])
+                    v_curr_after_select = np.squeeze(v_curr_after[n, :, :])
+                    v_curr_before_temp = griddata(points_ocean, v_curr_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
+                    v_curr_after_temp = griddata(points_ocean, v_curr_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
+                    v_curr_before_growler_depth_list.append(v_curr_before_temp)
+                    v_curr_after_growler_depth_list.append(v_curr_after_temp)
+                    salinity_before_select = np.squeeze(salinity_before[n, :, :])
+                    salinity_after_select = np.squeeze(salinity_after[n, :, :])
+                    salinity_before_temp = griddata(points_ocean, salinity_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
+                    salinity_after_temp = griddata(points_ocean, salinity_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
+                    salinity_before_growler_depth_list.append(salinity_before_temp)
+                    salinity_after_growler_depth_list.append(salinity_after_temp)
+                    pot_temp_before_select = np.squeeze(pot_temp_before[n, :, :])
+                    pot_temp_after_select = np.squeeze(pot_temp_after[n, :, :])
+                    pot_temp_before_temp = griddata(points_ocean, pot_temp_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
+                    pot_temp_after_temp = griddata(points_ocean, pot_temp_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
+                    pot_temp_before_growler_depth_list.append(pot_temp_before_temp)
+                    pot_temp_after_growler_depth_list.append(pot_temp_after_temp)
 
-                    u_curr_before_bb_depth_list = [float(val) for val in u_curr_before_bb_depth_list]
-                    u_curr_after_bb_depth_list = [float(val) for val in u_curr_after_bb_depth_list]
-                    interp_func = interp1d(depth_curr_bb, u_curr_before_bb_depth_list, kind='linear', fill_value='extrapolate')
-                    u_curr_before_bb_depth_list = interp_func(depth_curr_bb_interp)
-                    interp_func = interp1d(depth_curr_bb, u_curr_after_bb_depth_list, kind='linear', fill_value='extrapolate')
-                    u_curr_after_bb_depth_list = interp_func(depth_curr_bb_interp)
-                    u_curr_before_bb = np.nanmean(u_curr_before_bb_depth_list)
-                    u_curr_after_bb = np.nanmean(u_curr_after_bb_depth_list)
+                u_curr_before_bb_depth_list = [float(val) for val in u_curr_before_bb_depth_list]
+                u_curr_after_bb_depth_list = [float(val) for val in u_curr_after_bb_depth_list]
+                interp_func = interp1d(depth_curr_bb, u_curr_before_bb_depth_list, kind='linear', fill_value='extrapolate')
+                u_curr_before_bb_depth_list = interp_func(depth_curr_bb_interp)
+                interp_func = interp1d(depth_curr_bb, u_curr_after_bb_depth_list, kind='linear', fill_value='extrapolate')
+                u_curr_after_bb_depth_list = interp_func(depth_curr_bb_interp)
+                u_curr_before_bb = np.nanmean(u_curr_before_bb_depth_list)
+                u_curr_after_bb = np.nanmean(u_curr_after_bb_depth_list)
 
-                    v_curr_before_bb_depth_list = [float(val) for val in v_curr_before_bb_depth_list]
-                    v_curr_after_bb_depth_list = [float(val) for val in v_curr_after_bb_depth_list]
-                    interp_func = interp1d(depth_curr_bb, v_curr_before_bb_depth_list, kind='linear', fill_value='extrapolate')
-                    v_curr_before_bb_depth_list = interp_func(depth_curr_bb_interp)
-                    interp_func = interp1d(depth_curr_bb, v_curr_after_bb_depth_list, kind='linear', fill_value='extrapolate')
-                    v_curr_after_bb_depth_list = interp_func(depth_curr_bb_interp)
-                    v_curr_before_bb = np.nanmean(v_curr_before_bb_depth_list)
-                    v_curr_after_bb = np.nanmean(v_curr_after_bb_depth_list)
+                v_curr_before_bb_depth_list = [float(val) for val in v_curr_before_bb_depth_list]
+                v_curr_after_bb_depth_list = [float(val) for val in v_curr_after_bb_depth_list]
+                interp_func = interp1d(depth_curr_bb, v_curr_before_bb_depth_list, kind='linear', fill_value='extrapolate')
+                v_curr_before_bb_depth_list = interp_func(depth_curr_bb_interp)
+                interp_func = interp1d(depth_curr_bb, v_curr_after_bb_depth_list, kind='linear', fill_value='extrapolate')
+                v_curr_after_bb_depth_list = interp_func(depth_curr_bb_interp)
+                v_curr_before_bb = np.nanmean(v_curr_before_bb_depth_list)
+                v_curr_after_bb = np.nanmean(v_curr_after_bb_depth_list)
 
-                    u_curr_before_growler_depth_list = [float(val) for val in u_curr_before_growler_depth_list]
-                    u_curr_after_growler_depth_list = [float(val) for val in u_curr_after_growler_depth_list]
-                    interp_func = interp1d(depth_curr_growler, u_curr_before_growler_depth_list, kind='linear', fill_value='extrapolate')
-                    u_curr_before_growler_depth_list = interp_func(depth_curr_growler_interp)
-                    interp_func = interp1d(depth_curr_growler, u_curr_after_growler_depth_list, kind='linear', fill_value='extrapolate')
-                    u_curr_after_growler_depth_list = interp_func(depth_curr_growler_interp)
-                    u_curr_before_growler = np.nanmean(u_curr_before_growler_depth_list)
-                    u_curr_after_growler = np.nanmean(u_curr_after_growler_depth_list)
+                u_curr_before_growler_depth_list = [float(val) for val in u_curr_before_growler_depth_list]
+                u_curr_after_growler_depth_list = [float(val) for val in u_curr_after_growler_depth_list]
+                interp_func = interp1d(depth_curr_growler, u_curr_before_growler_depth_list, kind='linear', fill_value='extrapolate')
+                u_curr_before_growler_depth_list = interp_func(depth_curr_growler_interp)
+                interp_func = interp1d(depth_curr_growler, u_curr_after_growler_depth_list, kind='linear', fill_value='extrapolate')
+                u_curr_after_growler_depth_list = interp_func(depth_curr_growler_interp)
+                u_curr_before_growler = np.nanmean(u_curr_before_growler_depth_list)
+                u_curr_after_growler = np.nanmean(u_curr_after_growler_depth_list)
 
-                    v_curr_before_growler_depth_list = [float(val) for val in v_curr_before_growler_depth_list]
-                    v_curr_after_growler_depth_list = [float(val) for val in v_curr_after_growler_depth_list]
-                    interp_func = interp1d(depth_curr_growler, v_curr_before_growler_depth_list, kind='linear', fill_value='extrapolate')
-                    v_curr_before_growler_depth_list = interp_func(depth_curr_growler_interp)
-                    interp_func = interp1d(depth_curr_growler, v_curr_after_growler_depth_list, kind='linear', fill_value='extrapolate')
-                    v_curr_after_growler_depth_list = interp_func(depth_curr_growler_interp)
-                    v_curr_before_growler = np.nanmean(v_curr_before_growler_depth_list)
-                    v_curr_after_growler = np.nanmean(v_curr_after_growler_depth_list)
+                v_curr_before_growler_depth_list = [float(val) for val in v_curr_before_growler_depth_list]
+                v_curr_after_growler_depth_list = [float(val) for val in v_curr_after_growler_depth_list]
+                interp_func = interp1d(depth_curr_growler, v_curr_before_growler_depth_list, kind='linear', fill_value='extrapolate')
+                v_curr_before_growler_depth_list = interp_func(depth_curr_growler_interp)
+                interp_func = interp1d(depth_curr_growler, v_curr_after_growler_depth_list, kind='linear', fill_value='extrapolate')
+                v_curr_after_growler_depth_list = interp_func(depth_curr_growler_interp)
+                v_curr_before_growler = np.nanmean(v_curr_before_growler_depth_list)
+                v_curr_after_growler = np.nanmean(v_curr_after_growler_depth_list)
 
-                    salinity_before_bb_depth_list = [float(val) for val in salinity_before_bb_depth_list]
-                    salinity_after_bb_depth_list = [float(val) for val in salinity_after_bb_depth_list]
-                    interp_func = interp1d(depth_curr_bb, salinity_before_bb_depth_list, kind='linear', fill_value='extrapolate')
-                    salinity_before_bb_depth_list = interp_func(depth_curr_bb_interp)
-                    interp_func = interp1d(depth_curr_bb, salinity_after_bb_depth_list, kind='linear', fill_value='extrapolate')
-                    salinity_after_bb_depth_list = interp_func(depth_curr_bb_interp)
+                salinity_before_bb_depth_list = [float(val) for val in salinity_before_bb_depth_list]
+                salinity_after_bb_depth_list = [float(val) for val in salinity_after_bb_depth_list]
+                interp_func = interp1d(depth_curr_bb, salinity_before_bb_depth_list, kind='linear', fill_value='extrapolate')
+                salinity_before_bb_depth_list = interp_func(depth_curr_bb_interp)
+                interp_func = interp1d(depth_curr_bb, salinity_after_bb_depth_list, kind='linear', fill_value='extrapolate')
+                salinity_after_bb_depth_list = interp_func(depth_curr_bb_interp)
 
-                    pot_temp_before_bb_depth_list = [float(val) for val in pot_temp_before_bb_depth_list]
-                    pot_temp_after_bb_depth_list = [float(val) for val in pot_temp_after_bb_depth_list]
-                    interp_func = interp1d(depth_curr_bb, pot_temp_before_bb_depth_list, kind='linear', fill_value='extrapolate')
-                    pot_temp_before_bb_depth_list = interp_func(depth_curr_bb_interp)
-                    interp_func = interp1d(depth_curr_bb, pot_temp_after_bb_depth_list, kind='linear', fill_value='extrapolate')
-                    pot_temp_after_bb_depth_list = interp_func(depth_curr_bb_interp)
+                pot_temp_before_bb_depth_list = [float(val) for val in pot_temp_before_bb_depth_list]
+                pot_temp_after_bb_depth_list = [float(val) for val in pot_temp_after_bb_depth_list]
+                interp_func = interp1d(depth_curr_bb, pot_temp_before_bb_depth_list, kind='linear', fill_value='extrapolate')
+                pot_temp_before_bb_depth_list = interp_func(depth_curr_bb_interp)
+                interp_func = interp1d(depth_curr_bb, pot_temp_after_bb_depth_list, kind='linear', fill_value='extrapolate')
+                pot_temp_after_bb_depth_list = interp_func(depth_curr_bb_interp)
 
-                    salinity_before_growler_depth_list = [float(val) for val in salinity_before_growler_depth_list]
-                    salinity_after_growler_depth_list = [float(val) for val in salinity_after_growler_depth_list]
-                    interp_func = interp1d(depth_curr_growler, salinity_before_growler_depth_list, kind='linear', fill_value='extrapolate')
-                    salinity_before_growler_depth_list = interp_func(depth_curr_growler_interp)
-                    interp_func = interp1d(depth_curr_growler, salinity_after_growler_depth_list, kind='linear', fill_value='extrapolate')
-                    salinity_after_growler_depth_list = interp_func(depth_curr_growler_interp)
+                salinity_before_growler_depth_list = [float(val) for val in salinity_before_growler_depth_list]
+                salinity_after_growler_depth_list = [float(val) for val in salinity_after_growler_depth_list]
+                interp_func = interp1d(depth_curr_growler, salinity_before_growler_depth_list, kind='linear', fill_value='extrapolate')
+                salinity_before_growler_depth_list = interp_func(depth_curr_growler_interp)
+                interp_func = interp1d(depth_curr_growler, salinity_after_growler_depth_list, kind='linear', fill_value='extrapolate')
+                salinity_after_growler_depth_list = interp_func(depth_curr_growler_interp)
 
-                    pot_temp_before_growler_depth_list = [float(val) for val in pot_temp_before_growler_depth_list]
-                    pot_temp_after_growler_depth_list = [float(val) for val in pot_temp_after_growler_depth_list]
-                    interp_func = interp1d(depth_curr_growler, pot_temp_before_growler_depth_list, kind='linear', fill_value='extrapolate')
-                    pot_temp_before_growler_depth_list = interp_func(depth_curr_growler_interp)
-                    interp_func = interp1d(depth_curr_growler, pot_temp_after_growler_depth_list, kind='linear', fill_value='extrapolate')
-                    pot_temp_after_growler_depth_list = interp_func(depth_curr_growler_interp)
+                pot_temp_before_growler_depth_list = [float(val) for val in pot_temp_before_growler_depth_list]
+                pot_temp_after_growler_depth_list = [float(val) for val in pot_temp_after_growler_depth_list]
+                interp_func = interp1d(depth_curr_growler, pot_temp_before_growler_depth_list, kind='linear', fill_value='extrapolate')
+                pot_temp_before_growler_depth_list = interp_func(depth_curr_growler_interp)
+                interp_func = interp1d(depth_curr_growler, pot_temp_after_growler_depth_list, kind='linear', fill_value='extrapolate')
+                pot_temp_after_growler_depth_list = interp_func(depth_curr_growler_interp)
 
-                    if si_toggle:
-                        siconc_before_bb = griddata(points_ocean, siconc_before.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
-                        siconc_after_bb = griddata(points_ocean, siconc_after.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
-                        siconc_bb = siconc_before_bb + weight_ocean * (siconc_after_bb - siconc_before_bb)
-                        siconc_before_growler = griddata(points_ocean, siconc_before.ravel(),(growler_lat, growler_lon + 360.), method='linear')
-                        siconc_after_growler = griddata(points_ocean, siconc_after.ravel(),(growler_lat, growler_lon + 360.), method='linear')
-                        siconc_growler = siconc_before_growler + weight_ocean * (siconc_after_growler - siconc_before_growler)
-                    else:
-                        siconc_bb = 0.
-                        siconc_growler = 0.
+                if si_toggle:
+                    siconc_before_bb = griddata(points_ocean, siconc_before.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
+                    siconc_after_bb = griddata(points_ocean, siconc_after.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
+                    siconc_bb = siconc_before_bb + weight_ocean * (siconc_after_bb - siconc_before_bb)
+                    siconc_before_growler = griddata(points_ocean, siconc_before.ravel(),(growler_lat, growler_lon + 360.), method='linear')
+                    siconc_after_growler = griddata(points_ocean, siconc_after.ravel(),(growler_lat, growler_lon + 360.), method='linear')
+                    siconc_growler = siconc_before_growler + weight_ocean * (siconc_after_growler - siconc_before_growler)
+                else:
+                    siconc_bb = 0.
+                    siconc_growler = 0.
 
-                    u_curr_bb = u_curr_before_bb + weight_ocean * (u_curr_after_bb - u_curr_before_bb)
-                    v_curr_bb = v_curr_before_bb + weight_ocean * (v_curr_after_bb - v_curr_before_bb)
+                u_curr_bb = u_curr_before_bb + weight_ocean * (u_curr_after_bb - u_curr_before_bb)
+                v_curr_bb = v_curr_before_bb + weight_ocean * (v_curr_after_bb - v_curr_before_bb)
 
-                    u_curr_growler = u_curr_before_growler + weight_ocean * (u_curr_after_growler - u_curr_before_growler)
-                    v_curr_growler = v_curr_before_growler + weight_ocean * (v_curr_after_growler - v_curr_before_growler)
+                u_curr_growler = u_curr_before_growler + weight_ocean * (u_curr_after_growler - u_curr_before_growler)
+                v_curr_growler = v_curr_before_growler + weight_ocean * (v_curr_after_growler - v_curr_before_growler)
 
-                    salinity_bb_list = []
-                    pot_temp_bb_list = []
+                salinity_bb_list = []
+                pot_temp_bb_list = []
 
-                    salinity_growler_list = []
-                    pot_temp_growler_list = []
+                salinity_growler_list = []
+                pot_temp_growler_list = []
 
-                    for n in range(len(depth_curr_bb_interp)):
-                        salinity_bb = salinity_before_bb_depth_list[n] + weight_ocean * (salinity_after_bb_depth_list[n] - salinity_before_bb_depth_list[n])
-                        pot_temp_bb = pot_temp_before_bb_depth_list[n] + weight_ocean * (pot_temp_after_bb_depth_list[n] - pot_temp_before_bb_depth_list[n])
-                        salinity_bb_list.append(salinity_bb)
-                        pot_temp_bb_list.append(pot_temp_bb)
+                for n in range(len(depth_curr_bb_interp)):
+                    salinity_bb = salinity_before_bb_depth_list[n] + weight_ocean * (salinity_after_bb_depth_list[n] - salinity_before_bb_depth_list[n])
+                    pot_temp_bb = pot_temp_before_bb_depth_list[n] + weight_ocean * (pot_temp_after_bb_depth_list[n] - pot_temp_before_bb_depth_list[n])
+                    salinity_bb_list.append(salinity_bb)
+                    pot_temp_bb_list.append(pot_temp_bb)
 
-                    for n in range(len(depth_curr_growler_interp)):
-                        salinity_growler = salinity_before_growler_depth_list[n] + weight_ocean * (salinity_after_growler_depth_list[n] -
-                                                                                                   salinity_before_growler_depth_list[n])
-                        pot_temp_growler = pot_temp_before_growler_depth_list[n] + weight_ocean * (pot_temp_after_growler_depth_list[n] -
-                                                                                                   pot_temp_before_growler_depth_list[n])
-                        salinity_growler_list.append(salinity_growler)
-                        pot_temp_growler_list.append(pot_temp_growler)
+                for n in range(len(depth_curr_growler_interp)):
+                    salinity_growler = salinity_before_growler_depth_list[n] + weight_ocean * (salinity_after_growler_depth_list[n] -
+                                                                                               salinity_before_growler_depth_list[n])
+                    pot_temp_growler = pot_temp_before_growler_depth_list[n] + weight_ocean * (pot_temp_after_growler_depth_list[n] -
+                                                                                               pot_temp_before_growler_depth_list[n])
+                    salinity_growler_list.append(salinity_growler)
+                    pot_temp_growler_list.append(pot_temp_growler)
 
-                    wind_speed_bb = np.sqrt(u_wind_bb ** 2 + v_wind_bb ** 2)
-                    wind_speed_growler = np.sqrt(u_wind_growler ** 2 + v_wind_growler ** 2)
-                    wind_dir_bb = 90. - np.rad2deg(np.arctan2(v_wind_bb, u_wind_bb))
-                    wind_dir_growler = 90. - np.rad2deg(np.arctan2(v_wind_growler, u_wind_growler))
-                    curr_speed_bb = np.sqrt(u_curr_bb ** 2 + v_curr_bb ** 2)
-                    curr_speed_growler = np.sqrt(u_curr_growler ** 2 + v_curr_growler ** 2)
-                    curr_dir_bb = 90. - np.rad2deg(np.arctan2(v_curr_bb, u_curr_bb))
-                    curr_dir_growler = 90. - np.rad2deg(np.arctan2(v_curr_growler, u_curr_growler))
+                wind_speed_bb = np.sqrt(u_wind_bb ** 2 + v_wind_bb ** 2)
+                wind_speed_growler = np.sqrt(u_wind_growler ** 2 + v_wind_growler ** 2)
+                wind_dir_bb = 90. - np.rad2deg(np.arctan2(v_wind_bb, u_wind_bb))
+                wind_dir_growler = 90. - np.rad2deg(np.arctan2(v_wind_growler, u_wind_growler))
+                curr_speed_bb = np.sqrt(u_curr_bb ** 2 + v_curr_bb ** 2)
+                curr_speed_growler = np.sqrt(u_curr_growler ** 2 + v_curr_growler ** 2)
+                curr_dir_bb = 90. - np.rad2deg(np.arctan2(v_curr_bb, u_curr_bb))
+                curr_dir_growler = 90. - np.rad2deg(np.arctan2(v_curr_growler, u_curr_growler))
 
-                    if wind_dir_bb < 0:
-                        wind_dir_bb += 360.
+                if wind_dir_bb < 0:
+                    wind_dir_bb += 360.
 
-                    if wind_dir_growler < 0:
-                        wind_dir_growler += 360.
+                if wind_dir_growler < 0:
+                    wind_dir_growler += 360.
 
-                    if curr_dir_bb < 0:
-                        curr_dir_bb += 360.
+                if curr_dir_bb < 0:
+                    curr_dir_bb += 360.
 
-                    if curr_dir_growler < 0:
-                        curr_dir_growler += 360.
+                if curr_dir_growler < 0:
+                    curr_dir_growler += 360.
 
-                    left_trunc_Hs_bb = -Hs_bb
-                    Hs_bb_error = sample_hs_error(mean_Hs, std_dev_Hs, left_trunc_Hs_bb)
-                    left_trunc_Hs_growler = -Hs_growler
-                    Hs_growler_error = sample_hs_error(mean_Hs, std_dev_Hs, left_trunc_Hs_growler)
-                    Hs_bb += Hs_bb_error
-                    Hs_growler += Hs_growler_error
+                left_trunc_Hs_bb = -Hs_bb
+                Hs_bb_error = sample_hs_error(mean_Hs, std_dev_Hs, left_trunc_Hs_bb)
+                left_trunc_Hs_growler = -Hs_growler
+                Hs_growler_error = sample_hs_error(mean_Hs, std_dev_Hs, left_trunc_Hs_growler)
+                Hs_bb += Hs_bb_error
+                Hs_growler += Hs_growler_error
 
-                    if Hs_bb < 0:
-                        Hs_bb = 0.
+                if Hs_bb < 0:
+                    Hs_bb = 0.
 
-                    if Hs_growler < 0:
-                        Hs_growler = 0.
+                if Hs_growler < 0:
+                    Hs_growler = 0.
 
-                    left_trunc_wind_speed_bb = -wind_speed_bb
-                    right_trunc_wind_speed_bb = wind_speed_bb
-                    wind_speed_error_bb = truncated_normal(mean_wind_speed, std_dev_wind_speed, left_trunc_wind_speed_bb, right_trunc_wind_speed_bb)
-                    left_trunc_wind_speed_growler = -wind_speed_growler
-                    right_trunc_wind_speed_growler = wind_speed_growler
-                    wind_speed_error_growler = truncated_normal(mean_wind_speed, std_dev_wind_speed, left_trunc_wind_speed_growler, right_trunc_wind_speed_growler)
-                    wind_dir_error = wind_dir_errors[m]
-                    wind_speed_bb += wind_speed_error_bb
-                    wind_speed_growler += wind_speed_error_growler
-                    wind_dir_bb += wind_dir_error
-                    wind_dir_growler += wind_dir_error
+                left_trunc_wind_speed_bb = -wind_speed_bb
+                right_trunc_wind_speed_bb = wind_speed_bb
+                wind_speed_error_bb = truncated_normal(mean_wind_speed, std_dev_wind_speed, left_trunc_wind_speed_bb, right_trunc_wind_speed_bb)
+                left_trunc_wind_speed_growler = -wind_speed_growler
+                right_trunc_wind_speed_growler = wind_speed_growler
+                wind_speed_error_growler = truncated_normal(mean_wind_speed, std_dev_wind_speed, left_trunc_wind_speed_growler, right_trunc_wind_speed_growler)
+                wind_dir_error = wind_dir_errors[m]
+                wind_speed_bb += wind_speed_error_bb
+                wind_speed_growler += wind_speed_error_growler
+                wind_dir_bb += wind_dir_error
+                wind_dir_growler += wind_dir_error
 
-                    if wind_speed_bb < 0:
-                        wind_speed_bb = 0.
+                if wind_speed_bb < 0:
+                    wind_speed_bb = 0.
 
-                    if wind_speed_growler < 0:
-                        wind_speed_growler = 0.
+                if wind_speed_growler < 0:
+                    wind_speed_growler = 0.
 
-                    if wind_dir_bb < 0:
-                        wind_dir_bb += 360.
+                if wind_dir_bb < 0:
+                    wind_dir_bb += 360.
 
-                    if wind_dir_growler < 0:
-                        wind_dir_growler += 360.
+                if wind_dir_growler < 0:
+                    wind_dir_growler += 360.
 
-                    u_wind_bb = wind_speed_bb * np.sin(np.deg2rad(wind_dir_bb))
-                    v_wind_bb = wind_speed_bb * np.cos(np.deg2rad(wind_dir_bb))
-                    u_wind_growler = wind_speed_growler * np.sin(np.deg2rad(wind_dir_growler))
-                    v_wind_growler = wind_speed_growler * np.cos(np.deg2rad(wind_dir_growler))
+                u_wind_bb = wind_speed_bb * np.sin(np.deg2rad(wind_dir_bb))
+                v_wind_bb = wind_speed_bb * np.cos(np.deg2rad(wind_dir_bb))
+                u_wind_growler = wind_speed_growler * np.sin(np.deg2rad(wind_dir_growler))
+                v_wind_growler = wind_speed_growler * np.cos(np.deg2rad(wind_dir_growler))
 
-                    curr_speed_error = curr_speed_errors[m]
-                    std_dev_curr_dir_bb = 5. / (curr_speed_bb ** 2 + 0.05)
-                    curr_dir_error_bb = truncated_normal(mean_curr_dir, std_dev_curr_dir_bb, left_trunc_curr_dir, right_trunc_curr_dir)
-                    u_curr_bb_depth_list = []
-                    v_curr_bb_depth_list = []
+                curr_speed_error = curr_speed_errors[m]
+                std_dev_curr_dir_bb = 5. / (curr_speed_bb ** 2 + 0.05)
+                curr_dir_error_bb = truncated_normal(mean_curr_dir, std_dev_curr_dir_bb, left_trunc_curr_dir, right_trunc_curr_dir)
+                u_curr_bb_depth_list = []
+                v_curr_bb_depth_list = []
 
-                    for n in range(len(depth_curr_bb_interp)):
-                        u_curr_bb_temp = u_curr_before_bb_depth_list[n] + weight_ocean * (u_curr_after_bb_depth_list[n] - u_curr_before_bb_depth_list[n])
-                        v_curr_bb_temp = v_curr_before_bb_depth_list[n] + weight_ocean * (v_curr_after_bb_depth_list[n] - v_curr_before_bb_depth_list[n])
-                        curr_speed_bb_temp = np.sqrt(u_curr_bb_temp ** 2 + v_curr_bb_temp ** 2)
-                        curr_speed_bb_temp += curr_speed_error
+                for n in range(len(depth_curr_bb_interp)):
+                    u_curr_bb_temp = u_curr_before_bb_depth_list[n] + weight_ocean * (u_curr_after_bb_depth_list[n] - u_curr_before_bb_depth_list[n])
+                    v_curr_bb_temp = v_curr_before_bb_depth_list[n] + weight_ocean * (v_curr_after_bb_depth_list[n] - v_curr_before_bb_depth_list[n])
+                    curr_speed_bb_temp = np.sqrt(u_curr_bb_temp ** 2 + v_curr_bb_temp ** 2)
+                    curr_speed_bb_temp += curr_speed_error
 
-                        if curr_speed_bb_temp < 0:
-                            curr_speed_bb_temp = 0.
+                    if curr_speed_bb_temp < 0:
+                        curr_speed_bb_temp = 0.
 
-                        curr_dir_bb_temp = 90. - np.rad2deg(np.arctan2(v_curr_bb_temp, u_curr_bb_temp))
+                    curr_dir_bb_temp = 90. - np.rad2deg(np.arctan2(v_curr_bb_temp, u_curr_bb_temp))
 
-                        if curr_dir_bb_temp < 0:
-                            curr_dir_bb_temp += 360.
+                    if curr_dir_bb_temp < 0:
+                        curr_dir_bb_temp += 360.
 
-                        curr_dir_bb_temp += curr_dir_error_bb
+                    curr_dir_bb_temp += curr_dir_error_bb
 
-                        if curr_dir_bb_temp < 0:
-                            curr_dir_bb_temp += 360.
+                    if curr_dir_bb_temp < 0:
+                        curr_dir_bb_temp += 360.
 
-                        u_curr_bb_temp = curr_speed_bb_temp * np.sin(np.deg2rad(curr_dir_bb_temp))
-                        v_curr_bb_temp = curr_speed_bb_temp * np.cos(np.deg2rad(curr_dir_bb_temp))
-                        u_curr_bb_depth_list.append(u_curr_bb_temp)
-                        v_curr_bb_depth_list.append(v_curr_bb_temp)
+                    u_curr_bb_temp = curr_speed_bb_temp * np.sin(np.deg2rad(curr_dir_bb_temp))
+                    v_curr_bb_temp = curr_speed_bb_temp * np.cos(np.deg2rad(curr_dir_bb_temp))
+                    u_curr_bb_depth_list.append(u_curr_bb_temp)
+                    v_curr_bb_depth_list.append(v_curr_bb_temp)
 
-                    u_curr_bb = np.nanmean(u_curr_bb_depth_list)
-                    v_curr_bb = np.nanmean(v_curr_bb_depth_list)
+                u_curr_bb = np.nanmean(u_curr_bb_depth_list)
+                v_curr_bb = np.nanmean(v_curr_bb_depth_list)
 
-                    std_dev_curr_dir_growler = 5. / (curr_speed_growler ** 2 + 0.05)
-                    curr_dir_error_growler = truncated_normal(mean_curr_dir, std_dev_curr_dir_growler, left_trunc_curr_dir, right_trunc_curr_dir)
-                    u_curr_growler_depth_list = []
-                    v_curr_growler_depth_list = []
+                std_dev_curr_dir_growler = 5. / (curr_speed_growler ** 2 + 0.05)
+                curr_dir_error_growler = truncated_normal(mean_curr_dir, std_dev_curr_dir_growler, left_trunc_curr_dir, right_trunc_curr_dir)
+                u_curr_growler_depth_list = []
+                v_curr_growler_depth_list = []
 
-                    for n in range(len(depth_curr_growler_interp)):
-                        u_curr_growler_temp = u_curr_before_growler_depth_list[n] + weight_ocean * \
-                            (u_curr_after_growler_depth_list[n] - u_curr_before_growler_depth_list[n])
-                        v_curr_growler_temp = v_curr_before_growler_depth_list[n] + weight_ocean * \
-                            (v_curr_after_growler_depth_list[n] - v_curr_before_growler_depth_list[n])
-                        curr_speed_growler_temp = np.sqrt(u_curr_growler_temp ** 2 + v_curr_growler_temp ** 2)
-                        curr_speed_growler_temp += curr_speed_error
+                for n in range(len(depth_curr_growler_interp)):
+                    u_curr_growler_temp = u_curr_before_growler_depth_list[n] + weight_ocean * \
+                        (u_curr_after_growler_depth_list[n] - u_curr_before_growler_depth_list[n])
+                    v_curr_growler_temp = v_curr_before_growler_depth_list[n] + weight_ocean * \
+                        (v_curr_after_growler_depth_list[n] - v_curr_before_growler_depth_list[n])
+                    curr_speed_growler_temp = np.sqrt(u_curr_growler_temp ** 2 + v_curr_growler_temp ** 2)
+                    curr_speed_growler_temp += curr_speed_error
 
-                        if curr_speed_growler_temp < 0:
-                            curr_speed_growler_temp = 0.
+                    if curr_speed_growler_temp < 0:
+                        curr_speed_growler_temp = 0.
 
-                        curr_dir_growler_temp = 90. - np.rad2deg(np.arctan2(v_curr_growler_temp, u_curr_growler_temp))
+                    curr_dir_growler_temp = 90. - np.rad2deg(np.arctan2(v_curr_growler_temp, u_curr_growler_temp))
 
-                        if curr_dir_growler_temp < 0:
-                            curr_dir_growler_temp += 360.
+                    if curr_dir_growler_temp < 0:
+                        curr_dir_growler_temp += 360.
 
-                        curr_dir_growler_temp += curr_dir_error_growler
+                    curr_dir_growler_temp += curr_dir_error_growler
 
-                        if curr_dir_growler_temp < 0:
-                            curr_dir_growler_temp += 360.
+                    if curr_dir_growler_temp < 0:
+                        curr_dir_growler_temp += 360.
 
-                        u_curr_growler_temp = curr_speed_growler_temp * np.sin(np.deg2rad(curr_dir_growler_temp))
-                        v_curr_growler_temp = curr_speed_growler_temp * np.cos(np.deg2rad(curr_dir_growler_temp))
-                        u_curr_growler_depth_list.append(u_curr_growler_temp)
-                        v_curr_growler_depth_list.append(v_curr_growler_temp)
+                    u_curr_growler_temp = curr_speed_growler_temp * np.sin(np.deg2rad(curr_dir_growler_temp))
+                    v_curr_growler_temp = curr_speed_growler_temp * np.cos(np.deg2rad(curr_dir_growler_temp))
+                    u_curr_growler_depth_list.append(u_curr_growler_temp)
+                    v_curr_growler_depth_list.append(v_curr_growler_temp)
 
-                    u_curr_growler = np.nanmean(u_curr_growler_depth_list)
-                    v_curr_growler = np.nanmean(v_curr_growler_depth_list)
+                u_curr_growler = np.nanmean(u_curr_growler_depth_list)
+                v_curr_growler = np.nanmean(v_curr_growler_depth_list)
 
-                    if bergy_bit_mass > 0:
-                        new_bb_length, new_bb_draft, new_bb_sail, new_bb_mass = iceberg_det(bergy_bit_length, bergy_bit_mass, bergy_bit_lat, solar_rad_bb,
-                                                                                                                ice_albedo, Lf_ice, rho_ice, pot_temp_bb_list,
-                                                                                                                salinity_bb_list, depth_curr_bb_interp, airT_bb,
-                                                                                                                u_curr_bb, v_curr_bb, u_wind_bb, v_wind_bb,
-                                                                                                                bergy_bit_u, bergy_bit_v, Hs_bb, wave_pd_bb,
-                                                                                                                bergy_bit_growler_times_dt[i], siconc_bb)
-                        bergy_bit_bathy_depth = bathy_interp([[bergy_bit_lat, bergy_bit_lon]])[0]
-
-                        if bergy_bit_bathy_depth <= new_bb_draft:
-                            bergy_bit_grounded_statuses[i, k, m] = 1
-                            bergy_bit_grounded_status = 1
-                            bergy_bit_us[i, k, m] = 0.
-                            bergy_bit_vs[i, k, m] = 0.
-                        else:
-                            bergy_bit_grounded_statuses[i, k, m] = 0
-                            bergy_bit_grounded_status = 0
-                    else:
-                        new_bb_length = 0.
-                        new_bb_draft = 0.
-                        new_bb_sail = 0.
-                        new_bb_mass = 0.
-
-                    bergy_bit_lengths[i + 1, k, m] = new_bb_length
-                    bergy_bit_drafts[i + 1, k, m] = new_bb_draft
-                    bergy_bit_sails[i + 1, k, m] = new_bb_sail
-                    bergy_bit_masses[i + 1, k, m] = new_bb_mass
-
-                    if new_bb_mass > 0:
-                        bergy_bit_u_end, bergy_bit_v_end = iceberg_vel(u_wind_bb, v_wind_bb, u_curr_bb, v_curr_bb, alpha_cor)
-                    else:
-                        bergy_bit_u_end = 0.
-                        bergy_bit_v_end = 0.
-
-                    final_bb_speed = np.sqrt(bergy_bit_u_end ** 2 + bergy_bit_v_end ** 2)
-
-                    if final_bb_speed >= 2:
-                        bergy_bit_u_end = bergy_bit_u
-                        bergy_bit_v_end = bergy_bit_v
-
-                    if bergy_bit_grounded_status == 1:
-                        bergy_bit_u_end = 0.
-                        bergy_bit_v_end = 0.
-
-                    bergy_bit_x = np.nanmean([bergy_bit_u, bergy_bit_u_end]) * bergy_bit_growler_times_dt[i]
-                    bergy_bit_y = np.nanmean([bergy_bit_v, bergy_bit_v_end]) * bergy_bit_growler_times_dt[i]
-                    bergy_bit_dist = np.sqrt(bergy_bit_x ** 2 + bergy_bit_y ** 2)
-                    bergy_bit_course = 90. - np.rad2deg(np.arctan2(bergy_bit_y, bergy_bit_x))
-
-                    if bergy_bit_course < 0:
-                        bergy_bit_course += 360.
-
-                    bergy_bit_lat2, bergy_bit_lon2 = dist_course(Re, bergy_bit_lat, bergy_bit_lon, bergy_bit_dist, bergy_bit_course)
-                    bergy_bit_us[i + 1, k, m] = bergy_bit_u_end
-                    bergy_bit_vs[i + 1, k, m] = bergy_bit_v_end
-                    bergy_bit_lats[i + 1, k, m] = bergy_bit_lat2
-                    bergy_bit_lons[i + 1, k, m] = bergy_bit_lon2
-                    bergy_bit_bathy_depth = bathy_interp([[bergy_bit_lat2, bergy_bit_lon2]])[0]
+                if bergy_bit_mass > 0:
+                    new_bb_length, new_bb_draft, new_bb_sail, new_bb_mass = iceberg_det(bergy_bit_length, bergy_bit_mass, bergy_bit_lat, solar_rad_bb,
+                                                                                                            ice_albedo, Lf_ice, rho_ice, pot_temp_bb_list,
+                                                                                                            salinity_bb_list, depth_curr_bb_interp, airT_bb,
+                                                                                                            u_curr_bb, v_curr_bb, u_wind_bb, v_wind_bb,
+                                                                                                            bergy_bit_u, bergy_bit_v, Hs_bb, wave_pd_bb,
+                                                                                                            bergy_bit_growler_times_dt[i], siconc_bb)
+                    bergy_bit_bathy_depth = bathy_interp([[bergy_bit_lat, bergy_bit_lon]])[0]
 
                     if bergy_bit_bathy_depth <= new_bb_draft:
-                        bergy_bit_grounded_statuses[i + 1, k, m] = 1
-                        bergy_bit_us[i + 1, k, m] = 0.
-                        bergy_bit_vs[i + 1, k, m] = 0.
+                        bergy_bit_grounded_statuses[i, k, m] = 1
+                        bergy_bit_grounded_status = 1
+                        bergy_bit_us[i, k, m] = 0.
+                        bergy_bit_vs[i, k, m] = 0.
                     else:
-                        bergy_bit_grounded_statuses[i + 1, k, m] = 0
+                        bergy_bit_grounded_statuses[i, k, m] = 0
+                        bergy_bit_grounded_status = 0
+                else:
+                    new_bb_length = 0.
+                    new_bb_draft = 0.
+                    new_bb_sail = 0.
+                    new_bb_mass = 0.
 
-                    if growler_mass > 0:
-                        new_growler_length, new_growler_draft, new_growler_sail, new_growler_mass = iceberg_det(growler_length, growler_mass, growler_lat,
-                                                                                                                solar_rad_growler, ice_albedo, Lf_ice,
-                                                                                                                rho_ice, pot_temp_growler_list,
-                                                                                                                salinity_growler_list,
-                                                                                                                depth_curr_growler_interp, airT_growler,
-                                                                                                                u_curr_growler, v_curr_growler,
-                                                                                                                u_wind_growler, v_wind_growler,
-                                                                                                                growler_u, growler_v, Hs_growler, wave_pd_growler,
-                                                                                                                bergy_bit_growler_times_dt[i], siconc_growler)
-                        growler_bathy_depth = bathy_interp([[growler_lat, growler_lon]])[0]
+                bergy_bit_lengths[i + 1, k, m] = new_bb_length
+                bergy_bit_drafts[i + 1, k, m] = new_bb_draft
+                bergy_bit_sails[i + 1, k, m] = new_bb_sail
+                bergy_bit_masses[i + 1, k, m] = new_bb_mass
 
-                        if growler_bathy_depth <= new_growler_draft:
-                            growler_grounded_statuses[i, k, m] = 1
-                            growler_grounded_status = 1
-                            growler_us[i, k, m] = 0.
-                            growler_vs[i, k, m] = 0.
-                        else:
-                            growler_grounded_statuses[i, k, m] = 0
-                            growler_grounded_status = 0
-                    else:
-                        new_growler_length = 0.
-                        new_growler_draft = 0.
-                        new_growler_sail = 0.
-                        new_growler_mass = 0.
+                if new_bb_mass > 0:
+                    bergy_bit_u_end, bergy_bit_v_end = iceberg_vel(u_wind_bb, v_wind_bb, u_curr_bb, v_curr_bb, alpha_cor)
+                else:
+                    bergy_bit_u_end = 0.
+                    bergy_bit_v_end = 0.
 
-                    growler_lengths[i + 1, k, m] = new_growler_length
-                    growler_drafts[i + 1, k, m] = new_growler_draft
-                    growler_sails[i + 1, k, m] = new_growler_sail
-                    growler_masses[i + 1, k, m] = new_growler_mass
+                final_bb_speed = np.sqrt(bergy_bit_u_end ** 2 + bergy_bit_v_end ** 2)
 
-                    if new_growler_mass > 0:
-                        growler_u_end, growler_v_end = iceberg_vel(u_wind_growler, v_wind_growler, u_curr_growler, v_curr_growler, alpha_cor)
-                    else:
-                        growler_u_end = 0.
-                        growler_v_end = 0.
+                if final_bb_speed >= 2:
+                    bergy_bit_u_end = bergy_bit_u
+                    bergy_bit_v_end = bergy_bit_v
 
-                    final_growler_speed = np.sqrt(growler_u_end ** 2 + growler_v_end ** 2)
+                if bergy_bit_grounded_status == 1:
+                    bergy_bit_u_end = 0.
+                    bergy_bit_v_end = 0.
 
-                    if final_growler_speed >= 2:
-                        growler_u_end = growler_u
-                        growler_v_end = growler_v
+                bergy_bit_x = np.nanmean([bergy_bit_u, bergy_bit_u_end]) * bergy_bit_growler_times_dt[i]
+                bergy_bit_y = np.nanmean([bergy_bit_v, bergy_bit_v_end]) * bergy_bit_growler_times_dt[i]
+                bergy_bit_dist = np.sqrt(bergy_bit_x ** 2 + bergy_bit_y ** 2)
+                bergy_bit_course = 90. - np.rad2deg(np.arctan2(bergy_bit_y, bergy_bit_x))
 
-                    if growler_grounded_status == 1:
-                        growler_u_end = 0.
-                        growler_v_end = 0.
+                if bergy_bit_course < 0:
+                    bergy_bit_course += 360.
 
-                    growler_x = np.nanmean([growler_u, growler_u_end]) * bergy_bit_growler_times_dt[i]
-                    growler_y = np.nanmean([growler_v, growler_v_end]) * bergy_bit_growler_times_dt[i]
-                    growler_dist = np.sqrt(growler_x ** 2 + growler_y ** 2)
-                    growler_course = 90. - np.rad2deg(np.arctan2(growler_y, growler_x))
+                bergy_bit_lat2, bergy_bit_lon2 = dist_course(Re, bergy_bit_lat, bergy_bit_lon, bergy_bit_dist, bergy_bit_course)
+                bergy_bit_us[i + 1, k, m] = bergy_bit_u_end
+                bergy_bit_vs[i + 1, k, m] = bergy_bit_v_end
+                bergy_bit_lats[i + 1, k, m] = bergy_bit_lat2
+                bergy_bit_lons[i + 1, k, m] = bergy_bit_lon2
+                bergy_bit_bathy_depth = bathy_interp([[bergy_bit_lat2, bergy_bit_lon2]])[0]
 
-                    if growler_course < 0:
-                        growler_course += 360.
+                if bergy_bit_bathy_depth <= new_bb_draft:
+                    bergy_bit_grounded_statuses[i + 1, k, m] = 1
+                    bergy_bit_us[i + 1, k, m] = 0.
+                    bergy_bit_vs[i + 1, k, m] = 0.
+                else:
+                    bergy_bit_grounded_statuses[i + 1, k, m] = 0
 
-                    growler_lat2, growler_lon2 = dist_course(Re, growler_lat, growler_lon, growler_dist, growler_course)
-                    growler_us[i + 1, k, m] = growler_u_end
-                    growler_vs[i + 1, k, m] = growler_v_end
-                    growler_lats[i + 1, k, m] = growler_lat2
-                    growler_lons[i + 1, k, m] = growler_lon2
-                    growler_bathy_depth = bathy_interp([[growler_lat2, growler_lon2]])[0]
+                if growler_mass > 0:
+                    new_growler_length, new_growler_draft, new_growler_sail, new_growler_mass = iceberg_det(growler_length, growler_mass, growler_lat,
+                                                                                                            solar_rad_growler, ice_albedo, Lf_ice,
+                                                                                                            rho_ice, pot_temp_growler_list,
+                                                                                                            salinity_growler_list,
+                                                                                                            depth_curr_growler_interp, airT_growler,
+                                                                                                            u_curr_growler, v_curr_growler,
+                                                                                                            u_wind_growler, v_wind_growler,
+                                                                                                            growler_u, growler_v, Hs_growler, wave_pd_growler,
+                                                                                                            bergy_bit_growler_times_dt[i], siconc_growler)
+                    growler_bathy_depth = bathy_interp([[growler_lat, growler_lon]])[0]
 
                     if growler_bathy_depth <= new_growler_draft:
-                        growler_grounded_statuses[i + 1, k, m] = 1
-                        growler_us[i + 1, k, m] = 0.
-                        growler_vs[i + 1, k, m] = 0.
+                        growler_grounded_statuses[i, k, m] = 1
+                        growler_grounded_status = 1
+                        growler_us[i, k, m] = 0.
+                        growler_vs[i, k, m] = 0.
                     else:
-                        growler_grounded_statuses[i + 1, k, m] = 0
+                        growler_grounded_statuses[i, k, m] = 0
+                        growler_grounded_status = 0
+                else:
+                    new_growler_length = 0.
+                    new_growler_draft = 0.
+                    new_growler_sail = 0.
+                    new_growler_mass = 0.
+
+                growler_lengths[i + 1, k, m] = new_growler_length
+                growler_drafts[i + 1, k, m] = new_growler_draft
+                growler_sails[i + 1, k, m] = new_growler_sail
+                growler_masses[i + 1, k, m] = new_growler_mass
+
+                if new_growler_mass > 0:
+                    growler_u_end, growler_v_end = iceberg_vel(u_wind_growler, v_wind_growler, u_curr_growler, v_curr_growler, alpha_cor)
+                else:
+                    growler_u_end = 0.
+                    growler_v_end = 0.
+
+                final_growler_speed = np.sqrt(growler_u_end ** 2 + growler_v_end ** 2)
+
+                if final_growler_speed >= 2:
+                    growler_u_end = growler_u
+                    growler_v_end = growler_v
+
+                if growler_grounded_status == 1:
+                    growler_u_end = 0.
+                    growler_v_end = 0.
+
+                growler_x = np.nanmean([growler_u, growler_u_end]) * bergy_bit_growler_times_dt[i]
+                growler_y = np.nanmean([growler_v, growler_v_end]) * bergy_bit_growler_times_dt[i]
+                growler_dist = np.sqrt(growler_x ** 2 + growler_y ** 2)
+                growler_course = 90. - np.rad2deg(np.arctan2(growler_y, growler_x))
+
+                if growler_course < 0:
+                    growler_course += 360.
+
+                growler_lat2, growler_lon2 = dist_course(Re, growler_lat, growler_lon, growler_dist, growler_course)
+                growler_us[i + 1, k, m] = growler_u_end
+                growler_vs[i + 1, k, m] = growler_v_end
+                growler_lats[i + 1, k, m] = growler_lat2
+                growler_lons[i + 1, k, m] = growler_lon2
+                growler_bathy_depth = bathy_interp([[growler_lat2, growler_lon2]])[0]
+
+                if growler_bathy_depth <= new_growler_draft:
+                    growler_grounded_statuses[i + 1, k, m] = 1
+                    growler_us[i + 1, k, m] = 0.
+                    growler_vs[i + 1, k, m] = 0.
+                else:
+                    growler_grounded_statuses[i + 1, k, m] = 0
 
     bergy_bit_length_ranges = [(0, 5), (5, 10), (10, 15)]
     growler_length_ranges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
@@ -1634,6 +1478,8 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
     growler_length_final_stats = last_valid_length_stats(growler_lengths, min_length_growler, bergy_bit_growler_times)
     bergy_bit_length_overall_stats = overall_last_valid_length_stats(bergy_bit_lengths, min_length_bb, bergy_bit_growler_times)
     growler_length_overall_stats = overall_last_valid_length_stats(growler_lengths, min_length_growler, bergy_bit_growler_times)
-    return(bergy_bit_bounds_dict, bergy_bit_bounds, bergy_bit_length_final_stats, growler_bounds_dict, growler_bounds, growler_length_final_stats,
-           overall_bergy_bit_growler_boundary, bergy_bit_length_overall_stats, growler_length_overall_stats)
+    bergy_bit_growler_times = np.array(bergy_bit_growler_times)
+    bergy_bit_growler_times = bergy_bit_growler_times.astype(str).tolist()
+    return(bergy_bit_growler_times, bergy_bit_bounds_dict, bergy_bit_bounds, bergy_bit_length_final_stats, growler_bounds_dict,
+           growler_bounds, growler_length_final_stats, overall_bergy_bit_growler_boundary, bergy_bit_length_overall_stats, growler_length_overall_stats)
 

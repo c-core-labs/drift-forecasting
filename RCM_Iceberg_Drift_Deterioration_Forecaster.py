@@ -5,10 +5,10 @@ import numpy as np
 import netCDF4 as nc
 import os
 import gsw
-from observation import Observation
-# from observations import Observations
+# from observation import Observation
+from observations import Observations
 
-def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime64, si_toggle):
+def rcm_iceberg_drift_deterioration_forecaster(obs: Observations, t1: np.datetime64, si_toggle):
     g = 9.80665
     rho_water = 1023.6
     rho_air = 1.225

@@ -6,21 +6,15 @@ import time
 import warnings
 warnings.simplefilter(action='ignore')
 
-# With sea ice forcing:
-# Script runtime: 2638.5 minutes (43.975 hours) for 2 icebergs forecast to 72 hours with 250 ensemble members.
-
-# Without sea ice forcing:
-# Script runtime: 139.88 minutes (2.3313 hours) for 1 iceberg forecast to 72 hours with 25 ensemble members.
-
 start_time = time.time()
 
-iceberg_lats0 = [47.5, 47.5]
-iceberg_lons0 = [-46.9, -46.5]
-# iceberg_lats0 = 47.5
-# iceberg_lons0 = -46.5
+iceberg_lats0 = [54.6, 54.6]
+iceberg_lons0 = [-55.625, -55.55]
+# iceberg_lats0 = 54.6
+# iceberg_lons0 = -55.625
 # rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc)) # - np.timedelta64(12, 'h')
-rcm_datetime0 = np.datetime64('2025-02-05T16:36:48')
-forecast_end_time = rcm_datetime0 + np.timedelta64(72, 'h') # + np.timedelta64(23, 'm')
+rcm_datetime0 = np.datetime64('2025-02-06T16:36:48')
+forecast_end_time = rcm_datetime0 + np.timedelta64(24, 'h') # + np.timedelta64(23, 'm')
 iceberg_lengths0 = [40., 67.]
 # iceberg_lengths0 = 67.
 iceberg_ids = ['0000', '0001']
@@ -31,8 +25,11 @@ si_toggle = False
 
 obs = Observations(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, [False, False], iceberg_ids)
 # obs = Observation(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, False, iceberg_ids)
-(bergy_bit_bounds_dict, bergy_bit_bounds, bergy_bit_length_final_stats, growler_bounds_dict, growler_bounds, growler_length_final_stats,
+(bergy_bit_growler_times, bergy_bit_bounds_dict, bergy_bit_bounds, bergy_bit_length_final_stats, growler_bounds_dict, growler_bounds, growler_length_final_stats,
  overall_bergy_bit_growler_boundary, bergy_bit_length_overall_stats, growler_length_overall_stats) = rcm_bergy_bit_growler_forecaster(obs, forecast_end_time, si_toggle)
+bergy_bit_growler_times = np.array(bergy_bit_growler_times, dtype="datetime64[s]")
+time_1 = np.min(bergy_bit_growler_times)
+time_2 = np.max(bergy_bit_growler_times)
 
 for iceberg_index, stats in bergy_bit_length_final_stats.items():
     print(f"Iceberg {iceberg_index}:")
@@ -126,9 +123,9 @@ if overall_bergy_bit_growler_boundary is not None and overall_bergy_bit_growler_
 plt.scatter(iceberg_lons0, iceberg_lats0, c="red", s=100, label="Iceberg Initial Positions", edgecolor="black", zorder=10)
 plt.xlabel("Longitude (°E)")
 plt.ylabel("Latitude (°N)")
-plt.title("Outer Boundaries of Bergy Bits and Growlers", fontweight='bold', fontsize=10)
+plt.title(f"Bergy Bits and Growlers Drift/Deterioration {time_1} - {time_2}", fontsize=12, fontweight='bold')
 plt.legend()
 plt.grid(True)
-# plt.savefig("bergy_bit_growler_outer_boundaries_ranges.png", dpi=300, bbox_inches="tight")
-plt.show()
+plt.savefig("bergy_bit_growler_outer_boundaries_ranges.png", dpi=300, bbox_inches="tight")
+# plt.show()
 
