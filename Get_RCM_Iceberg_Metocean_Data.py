@@ -494,6 +494,9 @@ def get_rcm_metocean_data(date, forecast_hours, minimum_longitude, maximum_longi
     except (TypeError, ValueError):
         maximum_iceberg_length = 100.
 
+    if maximum_iceberg_length <= 0:
+        maximum_iceberg_length = 100.
+
     max_ib_draft = 1.78 * (maximum_iceberg_length ** 0.71)
     fname = directory + dirname_today + '/' + d_today + 'T' + hour_utc_str_ocean + \
         'Z_MSC_RIOPS_VOZOCRTX_DBS-all_PS5km_P' + str(wind_waves_ocean_hours[0]).zfill(3) + '.nc'
