@@ -126,6 +126,6 @@ plt.ylabel("Latitude (°N)")
 plt.title(f"Bergy Bits and Growlers Drift/Deterioration {time_1} - {time_2}", fontsize=12, fontweight='bold')
 plt.legend()
 plt.grid(True)
-plt.savefig("bergy_bit_growler_outer_boundaries_ranges.png", dpi=300, bbox_inches="tight")
+plt.savefig("bergy_bit_growler_outer_boundaries_ranges_2.png", dpi=300, bbox_inches="tight")
 # plt.show()
 

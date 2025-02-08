@@ -27,8 +27,8 @@ def plot_iceberg_tracks(iceberg_lons, iceberg_lats, iceberg_lengths, iceberg_tim
         iceberg_lats = iceberg_lats[:, np.newaxis]
         iceberg_lengths = iceberg_lengths[:, np.newaxis]
 
-    num_icebergs = iceberg_lons.shape[1] # Number of icebergs
-    cmap = plt.get_cmap("viridis") # Color map for length ranges
+    num_icebergs = iceberg_lons.shape[1]  # Number of icebergs
+    cmap = plt.get_cmap("viridis")  # Color map for length ranges
     min_length = np.nanmin(iceberg_lengths)
     max_length = np.nanmax(iceberg_lengths)
     norm = mcolors.BoundaryNorm(boundaries=np.arange(min_length, max_length + 5, 5), ncolors=256)
@@ -37,14 +37,16 @@ def plot_iceberg_tracks(iceberg_lons, iceberg_lats, iceberg_lengths, iceberg_tim
 
     all_segments = []
     all_colors = []
+    all_lons = []
+    all_lats = []
 
     for k in range(num_icebergs):
         segments = []
         colors = []
 
-        for i in range(iceberg_lons.shape[0] - 1): # Loop through time steps
+        for i in range(iceberg_lons.shape[0] - 1):  # Loop through time steps
             if np.isnan(iceberg_lengths[i, k]) or np.isnan(iceberg_lengths[i + 1, k]):
-                continue # Skip invalid data
+                continue  # Skip invalid data
 
             # Define the line segment
             segment = [(iceberg_lons[i, k], iceberg_lats[i, k]), (iceberg_lons[i + 1, k], iceberg_lats[i + 1, k])]
@@ -52,13 +54,21 @@ def plot_iceberg_tracks(iceberg_lons, iceberg_lats, iceberg_lengths, iceberg_tim
             length_range = iceberg_lengths[i, k]
             colors.append(cmap(norm(length_range)))
 
+            # Collect all longitude/latitude points for axis limits
+            all_lons.extend([iceberg_lons[i, k], iceberg_lons[i + 1, k]])
+            all_lats.extend([iceberg_lats[i, k], iceberg_lats[i + 1, k]])
+
         all_segments.extend(segments)
         all_colors.extend(colors)
+
+        # Plot initial positions as red dots
         plt.scatter(iceberg_lons[0, k], iceberg_lats[0, k], color="red", edgecolor="black", s=100, zorder=10)
 
     # Create a LineCollection with colors mapped to iceberg lengths
     lc = LineCollection(all_segments, colors=all_colors, linewidth=2, cmap=cmap, norm=norm)
     plt.gca().add_collection(lc)
+    plt.xlim(min(all_lons) - 0.1, max(all_lons) + 0.1)
+    plt.ylim(min(all_lats) - 0.1, max(all_lats) + 0.1)
     plt.xlabel("Longitude (°E)")
     plt.ylabel("Latitude (°N)")
     time_1 = np.min(iceberg_times)
@@ -89,6 +99,12 @@ si_toggle = False
 obs = Observations(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, [False, False], iceberg_ids)
 # obs = Observation(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, False, iceberg_ids)
 iceberg_times, iceberg_lats, iceberg_lons, iceberg_lengths, iceberg_grounded_statuses = rcm_iceberg_drift_deterioration_forecaster(obs, next_rcm_time, si_toggle)
+
+print(iceberg_times)
+print(iceberg_lats)
+print(iceberg_lons)
+print(iceberg_lengths)
+print(iceberg_grounded_statuses)
 
 end_time = time.time()
 
