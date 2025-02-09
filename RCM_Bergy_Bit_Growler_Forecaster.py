@@ -1289,7 +1289,12 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
 
                 curr_speed_error = curr_speed_errors[m]
                 std_dev_curr_dir_bb = 5. / (curr_speed_bb ** 2 + 0.05)
-                curr_dir_error_bb = truncated_normal(mean_curr_dir, std_dev_curr_dir_bb, left_trunc_curr_dir, right_trunc_curr_dir)
+
+                try:
+                    curr_dir_error_bb = truncated_normal(mean_curr_dir, std_dev_curr_dir_bb, left_trunc_curr_dir, right_trunc_curr_dir)
+                except:
+                    curr_dir_error_bb = truncated_normal(mean_curr_dir, 100., left_trunc_curr_dir, right_trunc_curr_dir)
+
                 u_curr_bb_depth_list = []
                 v_curr_bb_depth_list = []
 
@@ -1321,7 +1326,12 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
                 v_curr_bb = np.nanmean(v_curr_bb_depth_list)
 
                 std_dev_curr_dir_growler = 5. / (curr_speed_growler ** 2 + 0.05)
-                curr_dir_error_growler = truncated_normal(mean_curr_dir, std_dev_curr_dir_growler, left_trunc_curr_dir, right_trunc_curr_dir)
+
+                try:
+                    curr_dir_error_growler = truncated_normal(mean_curr_dir, std_dev_curr_dir_growler, left_trunc_curr_dir, right_trunc_curr_dir)
+                except:
+                    curr_dir_error_growler = truncated_normal(mean_curr_dir, 100., left_trunc_curr_dir, right_trunc_curr_dir)
+
                 u_curr_growler_depth_list = []
                 v_curr_growler_depth_list = []
 
