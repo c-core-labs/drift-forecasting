@@ -253,9 +253,8 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
         Returns:
         - float: A randomly sampled number within the specified range.
         """
-       # Calculate the a and b parameters for truncation
-        a = (left_trunc - mean) / std_dev
-        b = (right_trunc - mean) / std_dev
+        std_dev = max(std_dev, 1e-6) # Prevent zero or negative std_dev
+        a, b = (left_trunc - mean) / std_dev, (right_trunc - mean) / std_dev
         return truncnorm.rvs(a, b, loc=mean, scale=std_dev)
 
     def sample_scaled_error(mean, std_dev, k, scale, loc, right_trunc):

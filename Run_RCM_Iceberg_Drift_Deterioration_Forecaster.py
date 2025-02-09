@@ -67,14 +67,14 @@ def plot_iceberg_tracks(iceberg_lons, iceberg_lats, iceberg_lengths, iceberg_tim
     # Create a LineCollection with colors mapped to iceberg lengths
     lc = LineCollection(all_segments, colors=all_colors, linewidth=2, cmap=cmap, norm=norm)
     plt.gca().add_collection(lc)
-    plt.xlim(min(all_lons) - 0.1, max(all_lons) + 0.1)
-    plt.ylim(min(all_lats) - 0.1, max(all_lats) + 0.1)
+    plt.xlim(min(all_lons) - 0.05, max(all_lons) + 0.05)
+    plt.ylim(min(all_lats) - 0.05, max(all_lats) + 0.05)
     plt.xlabel("Longitude (°E)")
     plt.ylabel("Latitude (°N)")
     time_1 = np.min(iceberg_times)
     time_2 = np.max(iceberg_times)
     plt.title(f"Predicted Iceberg Tracks {time_1} - {time_2}", fontsize=12, fontweight='bold')
-    plt.colorbar(lc, label="Iceberg Length (m)")
+    plt.colorbar(lc, label="Iceberg Waterline Length (m)")
     plt.grid(True)
     plt.savefig("predicted_iceberg_tracks.png", dpi=300, bbox_inches="tight")
     # plt.show()
@@ -88,7 +88,7 @@ iceberg_lons0 = [-55.625, -55.55]
 # rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc)) # - np.timedelta64(12, 'h')
 rcm_datetime0 = np.datetime64('2025-02-06T16:36:48')
 next_rcm_time = rcm_datetime0 + np.timedelta64(24, 'h') # + np.timedelta64(23, 'm')
-iceberg_lengths0 = [40., 67.]
+iceberg_lengths0 = [50., 67.]
 # iceberg_lengths0 = 67.
 iceberg_ids = ['0000', '0001']
 # iceberg_ids = '0000'
@@ -100,11 +100,11 @@ obs = Observations(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0
 # obs = Observation(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, False, iceberg_ids)
 iceberg_times, iceberg_lats, iceberg_lons, iceberg_lengths, iceberg_grounded_statuses = rcm_iceberg_drift_deterioration_forecaster(obs, next_rcm_time, si_toggle)
 
-print(iceberg_times)
-print(iceberg_lats)
-print(iceberg_lons)
-print(iceberg_lengths)
-print(iceberg_grounded_statuses)
+# print(iceberg_times)
+# print(iceberg_lats)
+# print(iceberg_lons)
+# print(iceberg_lengths)
+# print(iceberg_grounded_statuses)
 
 end_time = time.time()
 
