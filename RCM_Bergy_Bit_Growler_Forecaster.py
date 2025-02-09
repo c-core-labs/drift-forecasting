@@ -257,23 +257,58 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
         a, b = (left_trunc - mean) / std_dev, (right_trunc - mean) / std_dev
         return truncnorm.rvs(a, b, loc=mean, scale=std_dev)
 
+    # def sample_scaled_error(mean, std_dev, k, scale, loc, right_trunc):
+    #     """
+    #     Samples a random number from a scaled error based on the generalized logistic distribution.
+    #
+    #     Args:
+    #     - mean (float): Approximate mean of the distribution.
+    #     - std_dev (float): Approximate standard deviation of the distribution.
+    #     - k (float): Shape parameter of the generalized logistic distribution.
+    #     - scale (float): Scale parameter of the distribution.
+    #     - loc (float): Location parameter (center of the distribution).
+    #     - right_trunc (float): Upper truncation limit.
+    #
+    #     Returns:
+    #     - float: A random sample within the defined range.
+    #     """
+    #     # Generate a truncated distribution
+    #     x = np.linspace(-10, right_trunc, 1000)  # Define x-range (lower truncation at -infinity approximated)
+    #     pdf = genlogistic.pdf(x, c=-k, loc=loc, scale=scale)
+    #     truncated_cdf = pdf / np.sum(pdf)
+    #     sample = np.random.choice(x, p=truncated_cdf)
+    #     return sample
+
     def sample_scaled_error(mean, std_dev, k, scale, loc, right_trunc):
         """
-        Samples a random number from a scaled error based on the generalized logistic distribution.
+        Samples a random number from a truncated generalized logistic distribution.
 
         Args:
-        - mean (float): Approximate mean of the distribution.
-        - std_dev (float): Approximate standard deviation of the distribution.
+        - mean (float): Mean of the distribution.
+        - std_dev (float): Standard deviation of the distribution.
         - k (float): Shape parameter of the generalized logistic distribution.
         - scale (float): Scale parameter of the distribution.
-        - loc (float): Location parameter (center of the distribution).
+        - loc (float): Base location parameter of the distribution.
         - right_trunc (float): Upper truncation limit.
 
         Returns:
         - float: A random sample within the defined range.
         """
-       # Generate a truncated distribution
-        x = np.linspace(-10, right_trunc, 1000) # Define x-range (lower truncation at -infinity approximated)
+
+        # Ensure std_dev and scale are positive
+        # if std_dev <= 0 or scale <= 0:
+        #     raise ValueError(f"Standard deviation and scale must be positive, got std_dev={std_dev}, scale={scale}")
+
+        std_dev = max(std_dev, 1e-6)
+
+        # Adjust loc based on mean (to ensure mean is properly considered)
+        # loc = mean  # Set the location parameter to the mean
+
+        # Define x-range for truncation
+        lower_trunc = mean - 5 * std_dev - 10  # Define a lower truncation based on std_dev
+        x = np.linspace(lower_trunc, right_trunc, 1000)
+
+        # Compute PDF and normalize
         pdf = genlogistic.pdf(x, c=-k, loc=loc, scale=scale)
         truncated_cdf = pdf / np.sum(pdf)
         sample = np.random.choice(x, p=truncated_cdf)
@@ -292,6 +327,7 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
         - float: A random sample.
         """
        # Calculate the normalized lower bound for truncation
+        std_dev = max(std_dev, 1e-6) # Prevent zero or negative std_dev
         a = (left_trunc - mean) / std_dev # Truncation point normalized by the distribution
         trunc_norm_dist = truncnorm(a=a, b=np.inf, loc=mean, scale=std_dev)
         sample = trunc_norm_dist.rvs(size=1)[0]
