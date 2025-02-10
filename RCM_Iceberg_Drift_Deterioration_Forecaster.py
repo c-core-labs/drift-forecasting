@@ -454,10 +454,6 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime
     ssh_grad_y_lon = np.squeeze(ssh_grad_data.variables['ssh_grad_y_lon'][:])
     ssh_grad_data.close()
 
-    points_ocean = np.array([ocean_lat.ravel(), ocean_lon.ravel()]).T
-    points_ssh_grad_x = np.array([ssh_grad_x_lat.ravel(), ssh_grad_x_lon.ravel()]).T
-    points_ssh_grad_y = np.array([ssh_grad_y_lat.ravel(), ssh_grad_y_lon.ravel()]).T
-
     fname = (rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + d_wind_waves + 'T' +
              hour_utc_str_wind_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_waves_hours[0]).zfill(3) + 'H.nc')
     wind_data = nc.Dataset(fname)

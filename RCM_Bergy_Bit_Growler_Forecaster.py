@@ -614,7 +614,6 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
     ocean_depth = ocean_data.variables['depth'][:]
     ocean_depth = ocean_depth.flatten()
     ocean_data.close()
-    points_ocean = np.array([ocean_lat.ravel(), ocean_lon.ravel()]).T
 
     fname = (rootpath_to_metdata + 'GDWPS_wind_wave_forecast_files/' + dirname_wind_waves + '/' + d_wind_waves + 'T' +
              hour_utc_str_wind_waves + 'Z_MSC_GDWPS_UGRD_AGL-10m_LatLon0.25_PT' + str(forecast_times_wind_waves_hours[0]).zfill(3) + 'H.nc')
