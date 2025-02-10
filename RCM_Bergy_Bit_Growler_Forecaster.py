@@ -10,6 +10,7 @@ from observations import Observations
 # from observation import Observation
 
 def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_toggle):
+    deg_radius = 5
     ens_num = 10
     rho_ice = 910.
     ice_albedo = 0.1
@@ -1019,6 +1020,18 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
                     depth_curr_growler = list(ocean_depth[:1])
                     depth_curr_growler_interp = np.arange(0., ocean_depth[-1], 0.001)
 
+                dist = np.sqrt((ocean_lat - bergy_bit_lat) ** 2 + (ocean_lon - (bergy_bit_lon + 360.)) ** 2)
+                i_center, j_center = np.unravel_index(np.argmin(dist), ocean_lat.shape)
+                i_min = max(i_center - deg_radius, 0)
+                i_max = min(i_center + deg_radius + 1, ocean_lat.shape[0])
+                j_min = max(j_center - deg_radius, 0)
+                j_max = min(j_center + deg_radius + 1, ocean_lat.shape[1])
+                ocean_lat_ind = np.arange(i_min, i_max)
+                ocean_lon_ind = np.arange(j_min, j_max)
+                ocean_lat_subset = ocean_lat[ocean_lat_ind, ocean_lon_ind]
+                ocean_lon_subset = ocean_lon[ocean_lat_ind, ocean_lon_ind]
+                points_ocean = np.array([ocean_lat_subset.ravel(), ocean_lon_subset.ravel()]).T
+
                 u_curr_before_bb_depth_list = []
                 u_curr_after_bb_depth_list = []
                 v_curr_before_bb_depth_list = []
@@ -1038,52 +1051,64 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
                 pot_temp_after_growler_depth_list = []
 
                 for n in range(len(depth_curr_bb)):
-                    u_curr_before_select = np.squeeze(u_curr_before[n, :, :])
-                    u_curr_after_select = np.squeeze(u_curr_after[n, :, :])
+                    u_curr_before_select = np.squeeze(u_curr_before[n, ocean_lat_ind, ocean_lon_ind])
+                    u_curr_after_select = np.squeeze(u_curr_after[n, ocean_lat_ind, ocean_lon_ind])
                     u_curr_before_temp = griddata(points_ocean, u_curr_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
                     u_curr_after_temp = griddata(points_ocean, u_curr_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
                     u_curr_before_bb_depth_list.append(u_curr_before_temp)
                     u_curr_after_bb_depth_list.append(u_curr_after_temp)
-                    v_curr_before_select = np.squeeze(v_curr_before[n, :, :])
-                    v_curr_after_select = np.squeeze(v_curr_after[n, :, :])
+                    v_curr_before_select = np.squeeze(v_curr_before[n, ocean_lat_ind, ocean_lon_ind])
+                    v_curr_after_select = np.squeeze(v_curr_after[n, ocean_lat_ind, ocean_lon_ind])
                     v_curr_before_temp = griddata(points_ocean, v_curr_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
                     v_curr_after_temp = griddata(points_ocean, v_curr_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
                     v_curr_before_bb_depth_list.append(v_curr_before_temp)
                     v_curr_after_bb_depth_list.append(v_curr_after_temp)
-                    salinity_before_select = np.squeeze(salinity_before[n, :, :])
-                    salinity_after_select = np.squeeze(salinity_after[n, :, :])
+                    salinity_before_select = np.squeeze(salinity_before[n, ocean_lat_ind, ocean_lon_ind])
+                    salinity_after_select = np.squeeze(salinity_after[n, ocean_lat_ind, ocean_lon_ind])
                     salinity_before_temp = griddata(points_ocean, salinity_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
                     salinity_after_temp = griddata(points_ocean, salinity_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
                     salinity_before_bb_depth_list.append(salinity_before_temp)
                     salinity_after_bb_depth_list.append(salinity_after_temp)
-                    pot_temp_before_select = np.squeeze(pot_temp_before[n, :, :])
-                    pot_temp_after_select = np.squeeze(pot_temp_after[n, :, :])
+                    pot_temp_before_select = np.squeeze(pot_temp_before[n, ocean_lat_ind, ocean_lon_ind])
+                    pot_temp_after_select = np.squeeze(pot_temp_after[n, ocean_lat_ind, ocean_lon_ind])
                     pot_temp_before_temp = griddata(points_ocean, pot_temp_before_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
                     pot_temp_after_temp = griddata(points_ocean, pot_temp_after_select.ravel(),(bergy_bit_lat, bergy_bit_lon + 360.), method='linear')
                     pot_temp_before_bb_depth_list.append(pot_temp_before_temp)
                     pot_temp_after_bb_depth_list.append(pot_temp_after_temp)
 
+                dist = np.sqrt((ocean_lat - growler_lat) ** 2 + (ocean_lon - (growler_lon + 360.)) ** 2)
+                i_center, j_center = np.unravel_index(np.argmin(dist), ocean_lat.shape)
+                i_min = max(i_center - deg_radius, 0)
+                i_max = min(i_center + deg_radius + 1, ocean_lat.shape[0])
+                j_min = max(j_center - deg_radius, 0)
+                j_max = min(j_center + deg_radius + 1, ocean_lat.shape[1])
+                ocean_lat_ind = np.arange(i_min, i_max)
+                ocean_lon_ind = np.arange(j_min, j_max)
+                ocean_lat_subset = ocean_lat[ocean_lat_ind, ocean_lon_ind]
+                ocean_lon_subset = ocean_lon[ocean_lat_ind, ocean_lon_ind]
+                points_ocean = np.array([ocean_lat_subset.ravel(), ocean_lon_subset.ravel()]).T
+
                 for n in range(len(depth_curr_growler)):
-                    u_curr_before_select = np.squeeze(u_curr_before[n, :, :])
-                    u_curr_after_select = np.squeeze(u_curr_after[n, :, :])
+                    u_curr_before_select = np.squeeze(u_curr_before[n, ocean_lat_ind, ocean_lon_ind])
+                    u_curr_after_select = np.squeeze(u_curr_after[n, ocean_lat_ind, ocean_lon_ind])
                     u_curr_before_temp = griddata(points_ocean, u_curr_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
                     u_curr_after_temp = griddata(points_ocean, u_curr_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
                     u_curr_before_growler_depth_list.append(u_curr_before_temp)
                     u_curr_after_growler_depth_list.append(u_curr_after_temp)
-                    v_curr_before_select = np.squeeze(v_curr_before[n, :, :])
-                    v_curr_after_select = np.squeeze(v_curr_after[n, :, :])
+                    v_curr_before_select = np.squeeze(v_curr_before[n, ocean_lat_ind, ocean_lon_ind])
+                    v_curr_after_select = np.squeeze(v_curr_after[n, ocean_lat_ind, ocean_lon_ind])
                     v_curr_before_temp = griddata(points_ocean, v_curr_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
                     v_curr_after_temp = griddata(points_ocean, v_curr_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
                     v_curr_before_growler_depth_list.append(v_curr_before_temp)
                     v_curr_after_growler_depth_list.append(v_curr_after_temp)
-                    salinity_before_select = np.squeeze(salinity_before[n, :, :])
-                    salinity_after_select = np.squeeze(salinity_after[n, :, :])
+                    salinity_before_select = np.squeeze(salinity_before[n, ocean_lat_ind, ocean_lon_ind])
+                    salinity_after_select = np.squeeze(salinity_after[n, ocean_lat_ind, ocean_lon_ind])
                     salinity_before_temp = griddata(points_ocean, salinity_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
                     salinity_after_temp = griddata(points_ocean, salinity_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
                     salinity_before_growler_depth_list.append(salinity_before_temp)
                     salinity_after_growler_depth_list.append(salinity_after_temp)
-                    pot_temp_before_select = np.squeeze(pot_temp_before[n, :, :])
-                    pot_temp_after_select = np.squeeze(pot_temp_after[n, :, :])
+                    pot_temp_before_select = np.squeeze(pot_temp_before[n, ocean_lat_ind, ocean_lon_ind])
+                    pot_temp_after_select = np.squeeze(pot_temp_after[n, ocean_lat_ind, ocean_lon_ind])
                     pot_temp_before_temp = griddata(points_ocean, pot_temp_before_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
                     pot_temp_after_temp = griddata(points_ocean, pot_temp_after_select.ravel(),(growler_lat, growler_lon + 360.), method='linear')
                     pot_temp_before_growler_depth_list.append(pot_temp_before_temp)
