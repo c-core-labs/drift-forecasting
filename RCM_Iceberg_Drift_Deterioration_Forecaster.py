@@ -5,10 +5,11 @@ import numpy as np
 import netCDF4 as nc
 import os
 import gsw
-# from observation import Observation
-from observations import Observations
+from observation import Observation
+# from observations import Observations
 
-def rcm_iceberg_drift_deterioration_forecaster(obs: Observations, t1: np.datetime64, si_toggle):
+def rcm_iceberg_drift_deterioration_forecaster(obs: Observation, t1: np.datetime64, si_toggle):
+    deg_radius = 5
     g = 9.80665
     rho_water = 1023.6
     rho_air = 1.225
@@ -925,6 +926,18 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observations, t1: np.datetim
                 depth_curr_ib = list(ocean_depth[:1])
                 depth_curr_ib_interp = np.arange(0., ocean_depth[-1], 0.001)
 
+            dist = np.sqrt((ocean_lat - iceberg_lat) ** 2 + (ocean_lon - (iceberg_lon + 360.)) ** 2)
+            i_center, j_center = np.unravel_index(np.argmin(dist), ocean_lat.shape)
+            i_min = max(i_center - deg_radius, 0)
+            i_max = min(i_center + deg_radius + 1, ocean_lat.shape[0])
+            j_min = max(j_center - deg_radius, 0)
+            j_max = min(j_center + deg_radius + 1, ocean_lat.shape[1])
+            ocean_lat_ind = np.arange(i_min, i_max)
+            ocean_lon_ind = np.arange(j_min, j_max)
+            ocean_lat_subset = ocean_lat[ocean_lat_ind, ocean_lon_ind]
+            ocean_lon_subset = ocean_lon[ocean_lat_ind, ocean_lon_ind]
+            points_ocean = np.array([ocean_lat_subset.ravel(), ocean_lon_subset.ravel()]).T
+
             u_curr_before_depth_list = []
             u_curr_after_depth_list = []
             v_curr_before_depth_list = []
@@ -939,38 +952,38 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observations, t1: np.datetim
             pot_temp_after_depth_list = []
 
             for n in range(len(depth_curr_ib)):
-                u_curr_before_select = np.squeeze(u_curr_before[n, :, :])
-                u_curr_after_select = np.squeeze(u_curr_after[n, :, :])
+                u_curr_before_select = np.squeeze(u_curr_before[n, ocean_lat_ind, ocean_lon_ind])
+                u_curr_after_select = np.squeeze(u_curr_after[n, ocean_lat_ind, ocean_lon_ind])
                 u_curr_before_temp = griddata(points_ocean, u_curr_before_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 u_curr_after_temp = griddata(points_ocean, u_curr_after_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 u_curr_before_depth_list.append(u_curr_before_temp)
                 u_curr_after_depth_list.append(u_curr_after_temp)
-                v_curr_before_select = np.squeeze(v_curr_before[n, :, :])
-                v_curr_after_select = np.squeeze(v_curr_after[n, :, :])
+                v_curr_before_select = np.squeeze(v_curr_before[n, ocean_lat_ind, ocean_lon_ind])
+                v_curr_after_select = np.squeeze(v_curr_after[n, ocean_lat_ind, ocean_lon_ind])
                 v_curr_before_temp = griddata(points_ocean, v_curr_before_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 v_curr_after_temp = griddata(points_ocean, v_curr_after_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 v_curr_before_depth_list.append(v_curr_before_temp)
                 v_curr_after_depth_list.append(v_curr_after_temp)
-                u_curr_before2_select = np.squeeze(u_curr_before2[n, :, :])
-                u_curr_after2_select = np.squeeze(u_curr_after2[n, :, :])
+                u_curr_before2_select = np.squeeze(u_curr_before2[n, ocean_lat_ind, ocean_lon_ind])
+                u_curr_after2_select = np.squeeze(u_curr_after2[n, ocean_lat_ind, ocean_lon_ind])
                 u_curr_before2_temp = griddata(points_ocean, u_curr_before2_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 u_curr_after2_temp = griddata(points_ocean, u_curr_after2_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 u_curr_before2_depth_list.append(u_curr_before2_temp)
                 u_curr_after2_depth_list.append(u_curr_after2_temp)
-                v_curr_before2_select = np.squeeze(v_curr_before2[n, :, :])
-                v_curr_after2_select = np.squeeze(v_curr_after2[n, :, :])
+                v_curr_before2_select = np.squeeze(v_curr_before2[n, ocean_lat_ind, ocean_lon_ind])
+                v_curr_after2_select = np.squeeze(v_curr_after2[n, ocean_lat_ind, ocean_lon_ind])
                 v_curr_before2_temp = griddata(points_ocean, v_curr_before2_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 v_curr_after2_temp = griddata(points_ocean, v_curr_after2_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 v_curr_before2_depth_list.append(v_curr_before2_temp)
                 v_curr_after2_depth_list.append(v_curr_after2_temp)
-                salinity_before_select = np.squeeze(salinity_before[n, :, :])
-                salinity_after_select = np.squeeze(salinity_after[n, :, :])
+                salinity_before_select = np.squeeze(salinity_before[n, ocean_lat_ind, ocean_lon_ind])
+                salinity_after_select = np.squeeze(salinity_after[n, ocean_lat_ind, ocean_lon_ind])
                 salinity_before_temp = griddata(points_ocean, salinity_before_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 salinity_after_temp = griddata(points_ocean, salinity_after_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 salinity_before_depth_list.append(salinity_before_temp)
                 salinity_after_depth_list.append(salinity_after_temp)
-                pot_temp_before_select = np.squeeze(pot_temp_before[n, :, :])
-                pot_temp_after_select = np.squeeze(pot_temp_after[n, :, :])
+                pot_temp_before_select = np.squeeze(pot_temp_before[n, ocean_lat_ind, ocean_lon_ind])
+                pot_temp_after_select = np.squeeze(pot_temp_after[n, ocean_lat_ind, ocean_lon_ind])
                 pot_temp_before_temp = griddata(points_ocean, pot_temp_before_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 pot_temp_after_temp = griddata(points_ocean, pot_temp_after_select.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
                 pot_temp_before_depth_list.append(pot_temp_before_temp)
@@ -1026,11 +1039,39 @@ def rcm_iceberg_drift_deterioration_forecaster(obs: Observations, t1: np.datetim
             interp_func = interp1d(depth_curr_ib, pot_temp_after_depth_list, kind='linear', fill_value='extrapolate')
             pot_temp_after_depth_list = interp_func(depth_curr_ib_interp)
 
-            ssh_grad_x_before_ib = griddata(points_ssh_grad_x, ssh_grad_x_before.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
-            ssh_grad_y_before_ib = griddata(points_ssh_grad_y, ssh_grad_y_before.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
+            dist = np.sqrt((ssh_grad_x_lat - iceberg_lat) ** 2 + (ssh_grad_x_lon - (iceberg_lon + 360.)) ** 2)
+            i_center, j_center = np.unravel_index(np.argmin(dist), ssh_grad_x_lat.shape)
+            i_min = max(i_center - deg_radius, 0)
+            i_max = min(i_center + deg_radius + 1, ssh_grad_x_lat.shape[0])
+            j_min = max(j_center - deg_radius, 0)
+            j_max = min(j_center + deg_radius + 1, ssh_grad_x_lat.shape[1])
+            ssh_grad_x_lat_ind = np.arange(i_min, i_max)
+            ssh_grad_x_lon_ind = np.arange(j_min, j_max)
+            ssh_grad_x_lat_subset = ssh_grad_x_lat[ssh_grad_x_lat_ind, ssh_grad_x_lon_ind]
+            ssh_grad_x_lon_subset = ssh_grad_x_lon[ssh_grad_x_lat_ind, ssh_grad_x_lon_ind]
+            points_ssh_grad_x = np.array([ssh_grad_x_lat_subset.ravel(), ssh_grad_x_lon_subset.ravel()]).T
+            ssh_grad_x_before_subset = ssh_grad_x_before[ssh_grad_x_lat_ind, ssh_grad_x_lon_ind]
+            ssh_grad_x_after_subset = ssh_grad_x_after[ssh_grad_x_lat_ind, ssh_grad_x_lon_ind]
 
-            ssh_grad_x_after_ib = griddata(points_ssh_grad_x, ssh_grad_x_after.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
-            ssh_grad_y_after_ib = griddata(points_ssh_grad_y, ssh_grad_y_after.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
+            dist = np.sqrt((ssh_grad_y_lat - iceberg_lat) ** 2 + (ssh_grad_y_lon - (iceberg_lon + 360.)) ** 2)
+            i_center, j_center = np.unravel_index(np.argmin(dist), ssh_grad_y_lat.shape)
+            i_min = max(i_center - deg_radius, 0)
+            i_max = min(i_center + deg_radius + 1, ssh_grad_y_lat.shape[0])
+            j_min = max(j_center - deg_radius, 0)
+            j_max = min(j_center + deg_radius + 1, ssh_grad_y_lat.shape[1])
+            ssh_grad_y_lat_ind = np.arange(i_min, i_max)
+            ssh_grad_y_lon_ind = np.arange(j_min, j_max)
+            ssh_grad_y_lat_subset = ssh_grad_y_lat[ssh_grad_y_lat_ind, ssh_grad_y_lon_ind]
+            ssh_grad_y_lon_subset = ssh_grad_y_lon[ssh_grad_y_lat_ind, ssh_grad_y_lon_ind]
+            points_ssh_grad_y = np.array([ssh_grad_y_lat_subset.ravel(), ssh_grad_y_lon_subset.ravel()]).T
+            ssh_grad_y_before_subset = ssh_grad_y_before[ssh_grad_y_lat_ind, ssh_grad_y_lon_ind]
+            ssh_grad_y_after_subset = ssh_grad_y_after[ssh_grad_y_lat_ind, ssh_grad_y_lon_ind]
+
+            ssh_grad_x_before_ib = griddata(points_ssh_grad_x, ssh_grad_x_before_subset.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
+            ssh_grad_y_before_ib = griddata(points_ssh_grad_y, ssh_grad_y_before_subset.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
+
+            ssh_grad_x_after_ib = griddata(points_ssh_grad_x, ssh_grad_x_after_subset.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
+            ssh_grad_y_after_ib = griddata(points_ssh_grad_y, ssh_grad_y_after_subset.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
 
             if si_toggle:
                 siconc_before_ib = griddata(points_ocean, siconc_before.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
