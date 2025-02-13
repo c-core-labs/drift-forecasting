@@ -299,8 +299,8 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
             new_iceberg_mass = 0.
 
         new_iceberg_length = np.cbrt(new_iceberg_mass / (0.45 * rho_ice))
-        new_iceberg_draft = 1.78 * (new_iceberg_length ** 0.71)  # meters
-        new_iceberg_sail = 0.077 * (new_iceberg_length ** 2)  # m ** 2
+        new_iceberg_draft = 1.78 * (new_iceberg_length ** 0.71) # meters
+        new_iceberg_sail = 0.077 * (new_iceberg_length ** 2) # m ** 2
         return new_iceberg_length, new_iceberg_draft, new_iceberg_sail, new_iceberg_mass
 
     def datenum_to_datetime64(datenum):
