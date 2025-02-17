@@ -73,13 +73,12 @@ The iceberg waterline lengths are assumed to be in meters. The date/time of the 
 
 1.	The first lines of the function define some constants, including densities for air, seawater, and ice, ice albedo, latent heat of fusion for ice, the earth gravitational acceleration and angular velocity, drag coefficients for air, water, and wave drift forcing on an iceberg, added mass fraction of an iceberg, and radius of the Earth. The paths to the bathymetric data (bathy_data_path) and the metocean forecast data files (rootpath_to_metdata) are defined. The iceberg initial latitudes/longitudes, time, waterline lengths, id numbers, grounded statuses, and forecast time are pulled from the Observation(s) class instance (obs) and put into list format if they are not already. The deg_radius variable sets the number of latitude-longitude grid points on the forecast ocean variables grid for temporarily trimming down the grid to within that number of grid points from the iceberg to save time on grid interpolation.
 
-2.	Five nested functions are defined within the rcm_iceberg_drift_deterioration_forecaster function:
+2.	Four nested functions are defined within the rcm_iceberg_drift_deterioration_forecaster function:
 
-•	The first function calculates the distance and azimuthal bearing between two latitude/longitude coordinates,
-•	The second function calculates the latitude/longitude coordinate at a given distance and course from an initial latitude/longitude coordinate,
-•	The third function calculates the easterly and northerly iceberg acceleration vector components from the sum of the forcings acting on the iceberg,
-•	The fourth function is for numerically solving the iceberg acceleration integration to drift velocity, and
-•	The fifth function calculates the new iceberg waterline length, draft, sail cross-sectional area, and total mass after deterioration.
+•	The first function calculates the latitude/longitude coordinate at a given distance and course from an initial latitude/longitude coordinate,
+•	The second function calculates the easterly and northerly iceberg acceleration vector components from the sum of the forcings acting on the iceberg,
+•	The third function is for numerically solving the iceberg acceleration integration to drift velocity, and
+•	The fourth function calculates the new iceberg waterline length, draft, sail cross-sectional area, and total mass after deterioration.
 
 The forces considered in the function for iceberg drift are the (e.g., see Lichey and Hellmer, 2001; Kubat et al., 2005; and Eik, 2009):
 
@@ -275,3 +274,121 @@ Lichey, C., and Hellmer, H.H. (2001). “Modeling giant iceberg drift under the 
 RIOPS. (2024). “Regional Ice Ocean Prediction System (RIOPS) Data in NetCDF Format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_riops/readme_riops-datamart_en/, November 1, 2024.
 
 Wagner, T.J.W., Dell, R.W., and Eisenman, I. (2017). “An Analytical Model of Iceberg Drift,” Journal of Physical Oceanography, vol. 47, pp. 1,605-1,616.
+
+Title: Documentation for RCM_Iceberg_Drift_Hindcaster.py
+Author: Ian D. Turnbull
+
+Summary:
+
+The RCM_Iceberg_Drift_Hindcaster.py Python script file contains a function called rcm_iceberg_drift_hindcaster and runs on a physics-based iceberg drift and deterioration model. The function takes the following inputs taken from a RADARSAT Constellation Mission (RCM) satellite image: a series of iceberg latitude/longitude positions, the date/time of the RCM image acquisition, the iceberg lengths, the iceberg statuses as grounded or not, the iceberg identification numbers, the previous time at which the user wishes to hindcast the icebergs’ position(s), the date of the folder from which to draw the metocean data in yyyy-mm-dd string format, and whether sea ice is present (si_toggle). The iceberg initial positions, time, waterline lengths, id numbers, and grounded statuses should be passed to the function from an instance of the Observations class or an instance of the Observation class if for a single iceberg only. The function hindcasts the iceberg past positions and waterline lengths at some user-specified time. The function will output hourly hindcast iceberg latitude/longitude position and waterline lengths back to the defined previous date/time. The final time step will be the remainder between the last hourly time step and the defined previous date/time if it is less than one hour. The function is meant to be used to hindcast where icebergs observed in RCM imagery most likely were at some point in the past so that the bergy bit/growler ensemble drift and deterioration forecaster can be run up to the time of the present RCM image acquisition to estimate the extent of bergy water. This document lists the Python libraries needed to run the function, describes how the function works, and lists its key operating assumptions.
+
+Python Libraries Used in Current Version of the Function:
+
+scipy v1.13.1
+numpy v1.26.4
+netCDF4 v1.6.2
+gsw v3.6.19
+os
+
+How the Function Works:
+
+The rcm_iceberg_drift_hindcaster function requires the following inputs:
+
+•	A set of iceberg latitude/longitude positions in array-like format (in degrees North and East, respectively) passed from an Observations class instance or a single iceberg position passed from an Observation class instance,
+•	The date/time of the RCM image acquisition (passed from Observation(s) class instance),
+•	The iceberg waterline lengths (passed from Observation(s) class instance),
+•	The icebergs’ statuses as grounded or not (passed from Observation(s) class instance as True/False),
+•	The iceberg’s id numbers (passed from Observation(s) class instance) for tracking purposes,
+•	The previous time to which the hindcast is to be run (t1)
+•	Whether sea is present (si_toggle=True or False), and
+•	The date of the folder from which to draw the metocean data in yyyy-mm-dd string format (this would be a subdirectory inside RCM_Iceberg_Metocean_Data > GDPS_airT_sw_rad_forecast_files or GDWPS_wind_wave_forecast_files or RIOPS_ocean_forecast_files.
+
+The iceberg waterline lengths are assumed to be in meters. The date/time of the RCM image acquisition (rcm_datetime0) and the previous date/time (previous_time) should be strings in numpy datetime64 format and Universal Time Coordinated (UTC), e.g., for example: ‘2024-11-01T09:42:53.33’.
+
+1.	The first lines of the function define some constants, including densities for air, seawater, and ice, ice albedo, latent heat of fusion for ice, the earth gravitational acceleration and angular velocity, drag coefficients for air, water, and wave drift forcing on an iceberg, added mass fraction of an iceberg, and radius of the Earth. The paths to the bathymetric data (bathy_data_path) and the metocean forecast data files (rootpath_to_metdata) are defined. The iceberg latitudes/longitudes, time, waterline lengths, id numbers, grounded statuses, and hindcast time are pulled from the Observation(s) class instance (obs) and put into list format if they are not already. The deg_radius variable sets the number of latitude-longitude grid points on the forecast ocean variables grid for temporarily trimming down the grid to within that number of grid points from the iceberg to save time on grid interpolation.
+
+2.	Four nested functions are defined within the rcm_iceberg_drift_hindcaster function:
+
+•	The first function calculates the latitude/longitude coordinate at a given distance and course from an initial latitude/longitude coordinate,
+•	The second function calculates the easterly and northerly iceberg acceleration vector components from the sum of the forcings acting on the iceberg,
+•	The third function is for numerically solving the iceberg acceleration integration to drift velocity, and
+•	The fourth function calculates the new iceberg waterline length, draft, sail cross-sectional area, and total mass after deterioration.
+
+The forces considered in the function for iceberg drift are the (e.g., see Lichey and Hellmer, 2001; Kubat et al., 2005; and Eik, 2009):
+
+•	Air (wind) and water (ocean current) drags,
+•	Coriolis,
+•	Water pressure gradient,
+•	Sea surface tilt (horizontal gravitational),
+•	Wave radiation, and
+•	Sea ice.
+
+The forcings considered in the function for iceberg deterioration are the (e.g., see Kubat et al., 2007):
+
+•	Surface (freeboard) melting due to solar radiation,
+•	Melting of the keel due to buoyant vertical convection,
+•	Melting of the keel and freeboard due to forced convection of water and air, respectively, and
+•	Calving due to wave erosion.
+
+Note that in the iceberg drift and deterioration functions, the wind and current velocities, sea surface gradients, sea ice velocities, and wave direction are reversed, and iceberg mass loss is added to the iceberg so that iceberg drift and deterioration are effectively reversed.
+
+3.	The rcm_datetime0 (the RCM image acquisition time) and previous_time are ensured to be in numpy datetime64 format and the hindcast start time for a set of icebergs passed to the function is set to the rcm_datetime0.
+
+4.	The function reads the bathymetric data file and interpolates the water depth at the iceberg location. If the iceberg’s status has been entered into the function as “not grounded” but the calculated draft is equal to or greater than the water depth, the iceberg draft is reset to be one meter less than the water depth. If the iceberg’s initial status is given as “grounded” then the iceberg’s draft will be reset to the water depth at its initial location.
+
+5.	If no real positive iceberg waterline length is given for an iceberg, the function will assume it is 100 m. Since the iceberg’s waterline length is the only physical dimension extracted from an RCM image, the iceberg draft, mass, and sail cross-sectional area are calculated from this variable alone. The iceberg draft is calculated as a function of the iceberg waterline length using the formulation obtained from analysis of C-CORE iceberg profile data. The iceberg mass and cross-sectional sail area are calculated as a function of waterline length from formulations given in Barker et al. (2004).
+
+6.	The iceberg drift hindcast times are determined. The drift hindcast is initialized at the RCM image acquisition date/time, and then hourly time-steps are used until the previous date/time is reached. The final time-step between the last hourly time-step and the previous date/time may be less than one hour.
+
+7.	Arrays are initialized for the hourly hindcast iceberg latitude/longitude positions, drift velocities, waterline lengths, drafts, and masses.
+
+8.	The UTC hour strings at which the metocean forecast data start are determined by checking the files in the rootpath_to_metdata.
+
+9.	The forecast times for wind, wave, ocean current, sea surface height, sea ice concentration, thickness, and velocity, ocean potential temperature, ocean salinity, air temperature, and surface solar radiation data that fully overlap with the iceberg drift hindcast period are determined.
+
+10.	The iceberg drift and reverse deterioration hindcast loop begins. At each time-step, the forecast wind, wave, ocean current, potential temperature, salinity, sea surface height gradient, sea ice concentration, thickness, and zonal and meridional velocity, air temperature, and surface solar radiation files are found that align with times just before and after the current iceberg hindcast time, or that align exactly with the current iceberg hindcast time if they exist.
+
+11.	The forecast wind velocity components, wave parameters, ocean current velocity components, potential temperatures, salinities, sea surface height gradient components, sea ice concentrations, thicknesses, and zonal and meridional velocities, air temperatures, and surface solar radiation from each of the before and after files are spatially interpolated to the iceberg hindcast position at the present time-step. Ocean current velocities, potential temperatures, and salinities are only processed to a depth equal to or just greater than the calculated iceberg draft. The ocean current velocities are then averaged over the draft depth of the iceberg. The linearly interpolated value of each metocean variable in time is then calculated for the present time-step. Wave variables are interpolated using nearest neighbor interpolation. The grids for the ocean current velocity components, potential temperatures, salinities, sea surface height gradient components, sea ice concentrations, thicknesses, and zonal and meridional velocities are trimmed down to just surround the iceberg location.
+
+12.	The iceberg reverse deterioration between the present and previous time-step is calculated.
+
+13.	The iceberg zonal and meridional acceleration components are computed at the present time-step, and an implicit, unconditionally stable numerical integration (backward differentiation) algorithm is used to determine the iceberg drift velocity at the previous time-step. The iceberg displacement at the previous time-step is then calculated using the Euler forward integration algorithm, integrated using drift velocities averaged between the present and previous time-steps (e.g., trapezoidal integration).
+
+14.	At each time-step, the water depth is checked at the hindcast iceberg location. If the water depth is equal to or less than the iceberg draft, the iceberg drift is halted at that point and the iceberg’s status is changed to grounded.
+
+15.	The function will finally return the following variables:
+
+•	The times at which the iceberg positions are hindcast (in numpy datetime64 string format),
+•	The hourly hindcast iceberg latitude/longitude (in degrees North and East, respectively) positions up to the previous date/time,
+•	The hourly hindcast iceberg waterline lengths (in meters) up to the previous date/time, and
+•	The hourly hindcast iceberg grounded statuses (as one for grounded or zero for not grounded).
+
+Key Operating Assumptions:
+
+1.	The bathymetric data file is assumed to be in netCDF format and contain three variables labelled “lat”, “lon”, and “elevation”. The elevation variable is assumed to be negative for water depth and have the dimensions latitude by longitude.
+
+2.	The iceberg drift velocities are initialized in the hindcast at zero.
+
+3.	Iceberg keel cross-sectional areas are assumed to be rectangular.
+
+References:
+
+Barker, A., Sayed, M., and Carrieres, T. (2004). “Determination of Iceberg Draft, Mass and Cross-Sectional Areas,” In Proceedings of the 14th International Offshore and Polar Engineering Conference (ISOPE), Toulon, France, May 23-28.
+
+Eik, K. (2009). “Iceberg drift modelling and validation of applied metocean hindcast data,” Cold Regions Science and Technology, vol. 57, pp. 67-90.
+
+GDPS. (2024). “Global Deterministic Prediction System (GDPS) data in GRIB2 format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_gdps/readme_gdps-datamart_en/, November 1, 2024.
+
+GDWPS. (2024). “Global Deterministic Wave Prediction System (GDWPS) data in GRIB2 format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_gdwps/readme_gdwps-datamart_en/, November 1, 2024.
+
+Hersbach, H., Bell, B., Berrisford, P., Biavati, G., Horányi, A., Muñoz Sabater, J., Nicolas, J., Peubey, C., Radu, R., Rozum, I., Schepers, D., Simmons, A., Soci, C., Dee, D., and Thépaut, J-N. (2023). “ERA5 hourly data on single levels from 1940 to present,” Copernicus Climate Change Service (C3S) Climate Data Store (CDS), DOI: 10.24381/cds.adbb2d47 (Accessed on November 18, 2024).
+
+HYCOM. (2024). “Hybrid Coordinate Ocean Model Global Ocean Forecast System (GOFS) 3.1,” Accessed on the World Wide Web at: https://www.hycom.org/dataserver/gofs-3pt1/analysis, November 18, 2024.
+
+Kubat, I., Sayed, M., Savage, S.B., and Carrieres, T. (2005). “An Operational Model of Iceberg Drift,” International Journal of Offshore and Polar Engineering (IJOPE), vol. 15, no. 2, pp. 125-131.
+
+Kubat, I., Sayed, M., Savage, S., Carrieres, T., and Crocker, G. (2007). “An Operational Iceberg Deterioration Model,” Proceedings of the 16th International Offshore and Polar Engineering Conference (ISOPE), Lisbon, Portugal, July 1-6.
+
+Lichey, C., and Hellmer, H.H. (2001). “Modeling giant iceberg drift under the influence of sea ice in the Weddell Sea, Antarctica,” Journal of Glaciology, vol. 47, no. 158, pp. 452-460.
+
+RIOPS. (2024). “Regional Ice Ocean Prediction System (RIOPS) Data in NetCDF Format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_riops/readme_riops-datamart_en/, November 1, 2024.
