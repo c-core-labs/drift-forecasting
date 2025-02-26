@@ -163,7 +163,7 @@ Author: Ian D. Turnbull
 
 Summary:
 
-The RCM_Bergy_Bit_Growler_Forecaster.py Python script file contains a function called rcm_bergy_bit_growler_forecaster and runs on a physics-based ensemble-probabilistic iceberg drift and deterioration model. The function takes the following inputs taken from a RADARSAT Constellation Mission (RCM) satellite image: a series of iceberg latitude/longitude positions, the date/time of the RCM image acquisition, the iceberg identification numbers, the forecast end time (forecast_end_time), and whether sea ice is present (si_toggle). The iceberg initial positions, time, and id numbers should be passed to the function from an instance of the Observations class or an instance of the Observation class if for a single iceberg only. The function assumes each iceberg will calve a bergy bit and a growler and forecasts a cone of uncertainty of possible maximum extents a bergy bit or growler could potentially drift from a given iceberg. The bergy bit is assumed to be 15 m waterline length and the growler 5 m waterline length, representing the maximum sizes of each. The function will output latitude-longitude polygons covering the maximum drift extents of the bergy bit and growler for each iceberg, a latitude-longitude polygon covering the maximum drift extents of the all the bergy bits and growlers  for all icebergs, and their final deteriorated waterline length statistics obtained from the ensemble of tracks (minimum, maximum, and mean) of the hourly forecast iceberg latitude/longitude position and waterline lengths up to the next RCM image acquisition date/time. The final time step will be the remainder between the last hourly time step and the forecast end time if it is less than one hour. This document lists the Python libraries needed to run the function, describes how the function works, and lists its key operating assumptions.
+The RCM_Bergy_Bit_Growler_Forecaster.py Python script file contains a function called rcm_bergy_bit_growler_forecaster and runs on a physics-based ensemble-probabilistic iceberg drift and deterioration model. The function takes the following inputs taken from a RADARSAT Constellation Mission (RCM) satellite image: a series of iceberg latitude/longitude positions, the date/time of the RCM image acquisition, the iceberg identification numbers, the forecast end time (forecast_end_time), and whether sea ice is present (si_toggle). The iceberg initial positions, time, and id numbers should be passed to the function from an instance of the Observations class or an instance of the Observation class if for a single iceberg only. The function assumes each iceberg will calve a bergy bit and a growler and forecasts a cone of uncertainty of possible maximum extents a bergy bit or growler could potentially drift from a given iceberg. The bergy bit is assumed to be 15 m waterline length and the growler 5 m waterline length, representing the maximum sizes of each. The function will output latitude-longitude polygons covering the maximum drift extents of the bergy bit and growler for each iceberg, a latitude-longitude polygon covering the maximum drift extents of the all the bergy bits and growlers for all icebergs, and their final deteriorated waterline length statistics obtained from the ensemble of tracks (minimum, maximum, and mean) of the hourly forecast iceberg latitude/longitude position and waterline lengths up to the next RCM image acquisition date/time. The final time step will be the remainder between the last hourly time step and the forecast end time if it is less than one hour. This document lists the Python libraries needed to run the function, describes how the function works, and lists its key operating assumptions.
 
 Python Libraries Used in Current Version of the Function:
 
@@ -187,14 +187,15 @@ The date/time of the RCM image acquisition (rcm_datetime0) and the forecast end 
 
 1.	The first lines of the function define some constants, including the density of ice, ice albedo, latent heat of fusion for ice, radius of the Earth, the Coriolis deflection angle, the number of ensemble tracks to produce for each bergy bit and each growler, the minimum bergy bit/growler lengths to be considered as “fully deteriorated,” and parameters that define the probability density functions (pdfs) from which randomized errors in forecast wind and ocean current velocity and significant wave height will be drawn for the ensemble model. These parameters are defined according to Allison et al. (2014). The paths to the bathymetric data (bathy_data_path) and the metocean forecast data files (rootpath_to_metdata) are defined. The iceberg initial latitudes/longitudes, time, id numbers, and forecast time are pulled from the Observation(s) class instance (obs) and put into list format if they are not already. The deg_radius variable sets the number of latitude-longitude grid points on the forecast ocean variables grid for temporarily trimming down the grid to within that number of grid points from the iceberg to save time on grid interpolation.
 
-2.	Nine nested functions are defined within the rcm_bergy_bit_growler_forecaster function:
+2.	Ten nested functions are defined within the rcm_bergy_bit_growler_forecaster function:
 
 •	The first function calculates the latitude/longitude coordinate at a given distance and course from an initial latitude/longitude coordinate,
 •	The second function calculates the easterly and northerly iceberg drift velocity vector components,
 •	The third function calculates the new bergy bit/growler waterline length, draft, sail cross-sectional area, and total mass after deterioration,
 •	The fourth, fifth, and sixth functions calculate randomized errors for the forecast wind and ocean current speeds and directions and the significant wave heights,
 •	The seventh function computes the outer boundaries of the bergy bit/growler ensemble tracks,
-•	The eighth and ninth functions compute the final statistics of the bergy bit/growler ensemble modelled deteriorated lengths.
+•	The eighth function computes the outer boundaries of the bergy bit/growler ensemble tracks and original iceberg locations, and
+•	The ninth and tenth functions compute the final statistics of the bergy bit/growler ensemble modelled deteriorated lengths.
 
 The function for bergy bit/growler drift velocity is a simple linear summation of 2% of the wind velocity vector turned 20 to the right to account for the Coriolis deflection, and the ocean current velocity averaged over the calculated draft of the bergy bit or growler (e.g., see Wagner et al., 2017).
 
@@ -231,12 +232,12 @@ The forcings considered in the function for bergy bit/growler deterioration are 
 
 15.	At each time-step, the water depth is checked at the forecast bergy bit/growler location. If the water depth is equal to or less than the bergy bit/growler draft, the bergy bit/growler drift is halted at that point and the bergy bit’s/growler’s status is changed to grounded.
 
-16.	The outer boundaries of the bergy bit/growler ensemble drift tracks are determined along with their final deteriorated waterline length statistics.
+16.	The outer boundaries of the bergy bit/growler ensemble drift tracks and original iceberg locations are determined along with the final bergy bit/growler deteriorated waterline length statistics.
 
 17.	The function will finally return the following variables:
 
 •	The times at which the bergy bit/growler positions are forecast (in numpy datetime64 string format),
-•	Dictionaries containing the bergy bit/growler boundaries, and
+•	Dictionaries containing the bergy bit/growler and iceberg boundaries, and
 •	Dictionaries containing the ensemble statistics of the bergy bit/growler final deteriorated waterline lengths and latest times at which they were reached in the ensemble output.
 
 Key Operating Assumptions:
