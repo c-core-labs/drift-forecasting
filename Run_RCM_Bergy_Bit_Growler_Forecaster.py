@@ -29,10 +29,28 @@ si_toggle = False
 obs = Observations(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, [False, False], iceberg_ids)
 # obs = Observation(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, False, iceberg_ids)
 (bergy_bit_growler_times, bergy_bit_bounds_dict, bergy_bit_bounds, bergy_bit_length_final_stats, growler_bounds_dict, growler_bounds, growler_length_final_stats,
- overall_bergy_bit_growler_boundary, bergy_bit_length_overall_stats, growler_length_overall_stats) = rcm_bergy_bit_growler_forecaster(obs, forecast_end_time, si_toggle)
+ overall_bergy_bit_growler_boundary, overall_boundary, bergy_bit_length_overall_stats, growler_length_overall_stats) = (
+    rcm_bergy_bit_growler_forecaster(obs, forecast_end_time, si_toggle))
 bergy_bit_growler_times = np.array(bergy_bit_growler_times, dtype="datetime64[s]")
 time_1 = np.min(bergy_bit_growler_times)
 time_2 = np.max(bergy_bit_growler_times)
+
+# Ensure observations are NumPy arrays
+iceberg_obs_points = np.column_stack((np.array(iceberg_lons_obs).ravel(), np.array(iceberg_lats_obs).ravel()))
+
+# Stack observed iceberg positions with the existing boundary
+if overall_boundary is not None and overall_boundary.size > 0:
+    all_points = np.vstack([overall_boundary, iceberg_obs_points])
+else:
+    all_points = iceberg_obs_points # In case the original boundary is empty
+
+# Ensure at least 3 unique points exist
+unique_points = np.unique(all_points, axis=0)
+if unique_points.shape[0] >= 3:
+    hull = ConvexHull(unique_points)
+    new_overall_boundary = unique_points[hull.vertices]
+else:
+    new_overall_boundary = None # Not enough points for a valid boundary
 
 for iceberg_index, stats in bergy_bit_length_final_stats.items():
     print(f"Iceberg {iceberg_index}:")
@@ -124,6 +142,18 @@ if overall_bergy_bit_growler_boundary is not None and overall_bergy_bit_growler_
     closed_boundary = np.vstack([overall_bergy_bit_growler_boundary, overall_bergy_bit_growler_boundary[0]]) # Close loop
     plt.plot(closed_boundary[:, 0], closed_boundary[:, 1], label="Overall Bergy Bit + Growler Boundary", linewidth=3, linestyle="dashed", color="black", zorder=5)
 
+# # --- Plot the Overall Bergy Bit + Growler + Iceberg Boundary ---
+# if overall_boundary is not None and overall_boundary.size > 0:
+#     closed_boundary = np.vstack([overall_boundary, overall_boundary[0]]) # Close loop
+#     plt.plot(closed_boundary[:, 0], closed_boundary[:, 1], label="Overall Bergy Bit + Growler + Iceberg Boundary",
+#              linewidth=3, linestyle="dashed", color="red", zorder=5)
+
+# --- Plot the Overall Bergy Bit + Growler + Iceberg Boundary ---
+if new_overall_boundary is not None and new_overall_boundary.size > 0:
+    closed_boundary = np.vstack([new_overall_boundary, new_overall_boundary[0]]) # Close loop
+    plt.plot(closed_boundary[:, 0], closed_boundary[:, 1], label="Overall Bergy Water Boundary",
+             linewidth=3, linestyle="dashed", color="red", zorder=5)
+
 # --- Plot Iceberg Initial Positions ---
 plt.scatter(iceberg_lons_obs, iceberg_lats_obs, c="blue", s=100, label="Iceberg RCM Observed Positions", edgecolor="black", zorder=10)
 plt.scatter(iceberg_lons0, iceberg_lats0, c="red", s=100, label="Iceberg Hindcast Positions", edgecolor="black", zorder=10)
@@ -132,6 +162,6 @@ plt.ylabel("Latitude (°N)")
 plt.title(f"Bergy Bits and Growlers Drift/Deterioration {time_1} - {time_2}", fontsize=12, fontweight='bold')
 plt.legend()
 plt.grid(True)
-plt.savefig("bergy_bit_growler_outer_boundaries_ranges_hindcast.png", dpi=300, bbox_inches="tight")
+plt.savefig("bergy_water_outer_boundaries_ranges.png", dpi=300, bbox_inches="tight")
 plt.show()
 
