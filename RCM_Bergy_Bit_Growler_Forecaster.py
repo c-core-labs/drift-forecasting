@@ -406,6 +406,66 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
         hull = ConvexHull(unique_points)
         return unique_points[hull.vertices]
 
+    def calculate_overall_boundary(bergy_bit_bounds, growler_bounds, iceberg_lons0, iceberg_lats0):
+        """
+        Compute a single overall outer boundary that includes bergy bits, growlers, and icebergs.
+
+        Args:
+        - bergy_bit_bounds (dict): Dictionary containing bergy bit boundaries.
+        - growler_bounds (dict): Dictionary containing growler boundaries.
+        - iceberg_lons0 (array-like): Longitudes of icebergs.
+        - iceberg_lats0 (array-like): Latitudes of icebergs.
+
+        Returns:
+        - np.ndarray or None: Overall outer boundary points (N x 2) if valid points exist, otherwise None.
+        """
+        all_points = []
+
+        # Collect all valid boundary points from bergy bits
+        if "min_length_boundary" in bergy_bit_bounds:
+            for boundary in bergy_bit_bounds["min_length_boundary"].values():
+                if boundary is not None and boundary.size > 2:
+                    all_points.append(boundary)
+
+        if "length_range_boundaries" in bergy_bit_bounds:
+            for boundary_dict in bergy_bit_bounds["length_range_boundaries"].values():
+                for boundary in boundary_dict.values():
+                    if boundary is not None and boundary.size > 2:
+                        all_points.append(boundary)
+
+        # Collect all valid boundary points from growlers
+        if "min_length_boundary" in growler_bounds:
+            for boundary in growler_bounds["min_length_boundary"].values():
+                if boundary is not None and boundary.size > 2:
+                    all_points.append(boundary)
+
+        if "length_range_boundaries" in growler_bounds:
+            for boundary_dict in growler_bounds["length_range_boundaries"].values():
+                for boundary in boundary_dict.values():
+                    if boundary is not None and boundary.size > 2:
+                        all_points.append(boundary)
+
+        # Add iceberg positions to boundary calculation
+        if iceberg_lons0 is not None and iceberg_lats0 is not None:
+            iceberg_points = np.column_stack((np.array(iceberg_lons0).ravel(), np.array(iceberg_lats0).ravel()))
+            all_points.append(iceberg_points)
+
+        # If no valid points were collected, return None
+        if not all_points:
+            return None
+
+        # Convert to a single array
+        all_points = np.vstack(all_points)
+
+        # Ensure at least 3 **unique** points exist
+        unique_points = np.unique(all_points, axis=0)
+        if unique_points.shape[0] < 3:
+            return None  # Not enough unique points for a valid boundary
+
+        # Compute the convex hull
+        hull = ConvexHull(unique_points)
+        return unique_points[hull.vertices]
+
     def last_valid_length_stats(lengths, min_length, timeseries):
         length_stats = {}
 
@@ -1509,6 +1569,7 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
             growler_bounds_dict[k] = np.empty((0, 2))
 
     overall_bergy_bit_growler_boundary = calculate_overall_bergy_bit_growler_boundary(bergy_bit_bounds, growler_bounds)
+    overall_boundary = calculate_overall_boundary(bergy_bit_bounds, growler_bounds, iceberg_lons0, iceberg_lats0)
     bergy_bit_length_final_stats = last_valid_length_stats(bergy_bit_lengths, min_length_bb, bergy_bit_growler_times)
     growler_length_final_stats = last_valid_length_stats(growler_lengths, min_length_growler, bergy_bit_growler_times)
     bergy_bit_length_overall_stats = overall_last_valid_length_stats(bergy_bit_lengths, min_length_bb, bergy_bit_growler_times)
@@ -1516,5 +1577,6 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
     bergy_bit_growler_times = np.array(bergy_bit_growler_times)
     bergy_bit_growler_times = bergy_bit_growler_times.astype(str).tolist()
     return(bergy_bit_growler_times, bergy_bit_bounds_dict, bergy_bit_bounds, bergy_bit_length_final_stats, growler_bounds_dict,
-           growler_bounds, growler_length_final_stats, overall_bergy_bit_growler_boundary, bergy_bit_length_overall_stats, growler_length_overall_stats)
+           growler_bounds, growler_length_final_stats, overall_bergy_bit_growler_boundary, overall_boundary,
+           bergy_bit_length_overall_stats, growler_length_overall_stats)
 
