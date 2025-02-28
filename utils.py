@@ -255,8 +255,8 @@ def read_product_shapefile(fname) -> npt.NDArray[Observation]:
 
     match = re.search(pattern, fname)
     if match:
-        #time = np.datetime64(datetime.strptime(match.group(0), "%Y%m%d_%H%M%S")).astype('datetime64[s]')
-        time = np.datetime64('now')
+        time = np.datetime64(datetime.strptime(match.group(0), "%Y%m%d_%H%M%S")).astype('datetime64[s]')
+        #time = np.datetime64('now')
         print("Acquisition time: " + str(time))
     else:
         print('Can not read date from the shapefile name.')

@@ -36,20 +36,22 @@ class Strategy(ABC):
 
 # ML model
 class HighResML(Strategy):
-    import highResML
+
 
     def forecast(self, obs: Observation, t1: np.datetime64 ) -> (np.array, np.array, np.array):
-       return self.highResML.forecast(obs, t1)
+        import highResML
+        return highResML.forecast(obs, t1)
 
     def metadata(self):
         return "High-resolution ML forecasting algorithm"
 
 # ML model
 class LowResML(Strategy):
-    import lowResML
+
 
     def forecast(self, obs: Observation, t1: np.datetime64 ) -> (np.array, np.array, np.array):
-       return self.lowResML.forecast(obs, t1)
+        import lowResML
+        return lowResML.forecast(obs, t1)
 
     def metadata(self):
         return "Low-resolution ML forecasting algorithm"
@@ -57,10 +59,11 @@ class LowResML(Strategy):
 
 # The grounded model
 class Grounded(Strategy):
-    import grounded
+
 
     def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
-        return self.grounded.forecast(obs,t1)
+        import grounded
+        return grounded.forecast(obs,t1)
 
     def metadata(self):
         return "Iceberg does not move"
@@ -68,20 +71,22 @@ class Grounded(Strategy):
 
 # The leeway model
 class Leeway(Strategy):
-    import leeway
+
 
     def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
-        return self.leeway.forecast(obs,t1)
+        import leeway
+        return leeway.forecast(obs,t1)
 
     def metadata(self):
         return "Leeway drift model"
 
 # The dynamic model
 class Dynamic(Strategy):
-    import dynamic
+
 
     def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
-        return self.dynamic.forecast(obs,t1)
+        import dynamic
+        return dynamic.forecast(obs,t1)
 
     def metadata(self):
         return "Dynamic drift model"

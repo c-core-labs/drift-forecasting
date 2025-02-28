@@ -6,7 +6,7 @@ from observation import Observation
 
 plt.rcParams['text.usetex'] = True
 
-input_fname = './input/20240417_094938_RCM_Targets/20240417_094938_RCM_Targets.shp'
+input_fname = './input/master_20240417_094938.shp'
 output_fname = './output/example.shp'
 
 observations = utils.read_product_shapefile(input_fname)
