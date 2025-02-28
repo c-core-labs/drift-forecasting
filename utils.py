@@ -4,7 +4,6 @@ from scipy import interpolate
 import shapefile
 from observation import Observation
 from datetime import datetime
-from catboost import MultiTargetCustomMetric, MultiTargetCustomObjective
 import sys
 import re
 import xarray as xr
@@ -196,55 +195,6 @@ def write_shapefile(predictions,fname):
         wkt += ',PRIMEM["Greenwich",0],'
         wkt += 'UNIT["degree",0.0174532925199433]]'
         prj.write(wkt)
-
-## User-defined loss-function
-class DimensionlessErrorObjective(MultiTargetCustomObjective):
-
-    def calc_ders_multi(self, approxes, target, weight):
-        assert len(approxes) == len(target)
-        min_float = sys.float_info.min
-        dist0 = np.linalg.norm(target)+min_float
-        dist1 =  ((target[0] - approxes[0]) ** 2 + (target[1] - approxes[1]) ** 2) ** 1.5 + min_float
-        grad = [0.0, 0.0]
-        hess = [[0.0, 0.0], [0.0, 0.0]]
-
-        # gradients
-        grad[0] = -(approxes[0] - target[0]) / dist0 / (np.sqrt(
-            (target[0] - approxes[0]) ** 2 + (target[1] - approxes[1]) ** 2) + min_float)
-        grad[1] = -(approxes[1] - target[1]) / dist0 / (np.sqrt(
-            (target[0] - approxes[0]) ** 2 + (target[1] - approxes[1]) ** 2) + min_float)
-
-        # Hessian
-        hess[0][0] = -1 / dist0 / dist1 + (
-                    approxes[0] - target[0]) / dist0 / dist1
-
-        hess[1][1] = -1 / dist0 / dist1 + (
-                    approxes[1] - target[1]) / dist0 / dist1
-
-        hess[0][1] = (approxes[0] - target[0]) * (approxes[1] - target[1]) / dist0 / dist1
-        hess[1][0] = (approxes[0] - target[0]) * (approxes[1] - target[1]) / dist0 / dist1
-
-        return (grad,hess)
-
-
-class DimensionlessErrorMetric(MultiTargetCustomMetric):
-    def get_final_error(self, error, weight):
-        return np.sqrt(error / (weight + 1e-38))
-
-    def is_max_optimal(self):
-        return False
-
-    def evaluate(self, approxes, target, weight):
-        assert len(target) == len(approxes)
-        assert len(target[0]) == len(approxes[0])
-
-        error_sum = 0.0
-        weight_sum = 2.0
-
-        for i in range(len(approxes)):
-            error_sum += np.sqrt((approxes[i][0] - target[i][0]) ** 2 + (approxes[i][1] - target[i][1]) ** 2)/np.sqrt(target[i][0] ** 2 + target[i][1] ** 2)
-
-        return error_sum, weight_sum
 
 
 def read_product_shapefile(fname) -> npt.NDArray[Observation]:
