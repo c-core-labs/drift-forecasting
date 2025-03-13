@@ -81,24 +81,24 @@ def plot_iceberg_tracks(iceberg_lons, iceberg_lats, iceberg_lengths, iceberg_tim
 
 start_time = time.time()
 
-# iceberg_lats0 = [54.6, 54.6]
-# iceberg_lons0 = [-55.625, -55.55]
-iceberg_lats0 = 54.6
-iceberg_lons0 = -55.625
+iceberg_lats0 = [54.6, 54.6]
+iceberg_lons0 = [-55.625, -55.55]
+# iceberg_lats0 = 54.6
+# iceberg_lons0 = -55.625
 # rcm_datetime0 = np.datetime64(datetime.datetime.now(datetime.timezone.utc)) # - np.timedelta64(12, 'h')
 rcm_datetime0 = np.datetime64('2025-02-07T16:00:00')
 previous_time = rcm_datetime0 - np.timedelta64(24, 'h') # + np.timedelta64(23, 'm')
 metocean_folder_date = '2025-02-06'
-# iceberg_lengths0 = [50., 67.]
-iceberg_lengths0 = 67.
-# iceberg_ids = ['0000', '0001']
-iceberg_ids = '0000'
-# iceberg_grounded_statuses0 = [False, False]
-iceberg_grounded_statuses0 = False
-si_toggle = False
+iceberg_lengths0 = [50., 67.]
+# iceberg_lengths0 = 67.
+iceberg_ids = ['0000', '0001']
+# iceberg_ids = '0000'
+iceberg_grounded_statuses0 = [False, False]
+# iceberg_grounded_statuses0 = False
+si_toggle = True
 
-# obs = Observations(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, [False, False], iceberg_ids)
-obs = Observation(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, False, iceberg_ids)
+obs = Observations(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, [False, False], iceberg_ids)
+# obs = Observation(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, False, iceberg_ids)
 iceberg_times, iceberg_lats, iceberg_lons, iceberg_lengths, iceberg_grounded_statuses = rcm_iceberg_drift_hindcaster(obs, previous_time, si_toggle, metocean_folder_date)
 
 print(iceberg_times)

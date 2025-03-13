@@ -779,13 +779,13 @@ def get_rcm_metocean_data(date, forecast_hours, minimum_longitude, maximum_longi
                 vsi_var[:] = vsi
 
 date = str(np.datetime64('today'))
-forecast_hours = 84
+forecast_hours = 24
 minimum_longitude = -64.5
 maximum_longitude = -46.75
 minimum_latitude = 48
 maximum_latitude = 61.2
 maximum_iceberg_length = 100.
-si_toggle = True
+si_toggle = False
 
 get_rcm_metocean_data(date, forecast_hours, minimum_longitude, maximum_longitude, minimum_latitude, maximum_latitude, maximum_iceberg_length, si_toggle)
 

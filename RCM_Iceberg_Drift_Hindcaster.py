@@ -213,14 +213,11 @@ def rcm_iceberg_drift_hindcaster(obs: Observations, t1: np.datetime64, si_toggle
         u_curr = -u_curr
         v_curr = -v_curr
 
-        air_therm_diff_array = np.array(
-            [[-100, 7.88e-6], [-50, 13.02e-6], [-30, 15.33e-6], [-20, 16.54e-6], [-10, 17.78e-6], [-5, 18.41e-6],
-             [0, 19.06e-6], [5, 19.71e-6], [10, 20.36e-6], [20, 21.7e-6], [25, 22.39e-6], [30, 23.07e-6],
-             [50, 25.91e-6],
+        air_therm_diff_array = np.array([[-100, 7.88e-6], [-50, 13.02e-6], [-30, 15.33e-6], [-20, 16.54e-6], [-10, 17.78e-6], [-5, 18.41e-6],
+             [0, 19.06e-6], [5, 19.71e-6], [10, 20.36e-6], [20, 21.7e-6], [25, 22.39e-6], [30, 23.07e-6], [50, 25.91e-6],
              [75, 29.61e-6], [100, 33.49e-6], [125, 37.53e-6], [150, 41.73e-6], [175, 46.07e-6], [200, 50.56e-6],
              [250, 59.93e-6], [300, 69.79e-6]])
-        air_kin_vis_array = np.array(
-            [[-75, 7.4e-6], [-50, 9.22e-6], [-25, 11.18e-6], [-15, 12.01e-6], [-10, 12.43e-6], [-5, 12.85e-6],
+        air_kin_vis_array = np.array([[-75, 7.4e-6], [-50, 9.22e-6], [-25, 11.18e-6], [-15, 12.01e-6], [-10, 12.43e-6], [-5, 12.85e-6],
              [0, 13.28e-6], [5, 13.72e-6], [10, 14.16e-6], [15, 14.61e-6], [20, 15.06e-6], [25, 15.52e-6],
              [30, 15.98e-6], [40, 16.92e-6], [50, 17.88e-6], [60, 18.86e-6], [80, 20.88e-6], [100, 22.97e-6],
              [125, 25.69e-6], [150, 28.51e-6], [175, 31.44e-6], [200, 34.47e-6], [225, 37.6e-6], [300, 47.54e-6],
@@ -1101,18 +1098,32 @@ def rcm_iceberg_drift_hindcaster(obs: Observations, t1: np.datetime64, si_toggle
             ssh_grad_y_after_ib = griddata(points_ssh_grad_y, ssh_grad_y_after_subset.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
 
             if si_toggle:
-                siconc_before_ib = griddata(points_ocean, siconc_before.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
-                siconc_after_ib = griddata(points_ocean, siconc_after.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
-                sithick_before_ib = griddata(points_ocean, sithick_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
-                sithick_after_ib = griddata(points_ocean, sithick_after.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
-                usi_before_ib = griddata(points_ocean, usi_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
-                usi_after_ib = griddata(points_ocean, usi_after.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
-                vsi_before_ib = griddata(points_ocean, vsi_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
-                vsi_after_ib = griddata(points_ocean, vsi_after.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
-                siconc_ib = siconc_before_ib + weight_ocean * (siconc_after_ib - siconc_before_ib)
-                sithick_ib = sithick_before_ib + weight_ocean * (sithick_after_ib - sithick_before_ib)
-                usi_ib = usi_before_ib + weight_ocean * (usi_after_ib - usi_before_ib)
-                vsi_ib = vsi_before_ib + weight_ocean * (vsi_after_ib - vsi_before_ib)
+                try:
+                    siconc_before = siconc_before[ocean_lat_ind, ocean_lon_ind]
+                    siconc_after = siconc_after[ocean_lat_ind, ocean_lon_ind]
+                    sithick_before = sithick_before[ocean_lat_ind, ocean_lon_ind]
+                    sithick_after = sithick_after[ocean_lat_ind, ocean_lon_ind]
+                    usi_before = usi_before[ocean_lat_ind, ocean_lon_ind]
+                    usi_after = usi_after[ocean_lat_ind, ocean_lon_ind]
+                    vsi_before = vsi_before[ocean_lat_ind, ocean_lon_ind]
+                    vsi_after = vsi_after[ocean_lat_ind, ocean_lon_ind]
+                    siconc_before_ib = griddata(points_ocean, siconc_before.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
+                    siconc_after_ib = griddata(points_ocean, siconc_after.ravel(),(iceberg_lat, iceberg_lon + 360.), method='linear')
+                    sithick_before_ib = griddata(points_ocean, sithick_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    sithick_after_ib = griddata(points_ocean, sithick_after.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    usi_before_ib = griddata(points_ocean, usi_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    usi_after_ib = griddata(points_ocean, usi_after.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    vsi_before_ib = griddata(points_ocean, vsi_before.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    vsi_after_ib = griddata(points_ocean, vsi_after.ravel(), (iceberg_lat, iceberg_lon + 360.), method='linear')
+                    siconc_ib = siconc_before_ib + weight_ocean * (siconc_after_ib - siconc_before_ib)
+                    sithick_ib = sithick_before_ib + weight_ocean * (sithick_after_ib - sithick_before_ib)
+                    usi_ib = usi_before_ib + weight_ocean * (usi_after_ib - usi_before_ib)
+                    vsi_ib = vsi_before_ib + weight_ocean * (vsi_after_ib - vsi_before_ib)
+                except:
+                    siconc_ib = 0.
+                    sithick_ib = 0.
+                    usi_ib = 0.
+                    vsi_ib = 0.
             else:
                 siconc_ib = 0.
                 sithick_ib = 0.
