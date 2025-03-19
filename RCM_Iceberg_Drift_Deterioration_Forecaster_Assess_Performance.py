@@ -494,7 +494,7 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
     nearest_idx = np.unravel_index(np.argmin(distance, axis=None), distance.shape)
     nearest_lat_idx, nearest_lon_idx = nearest_idx
 
-    # Define the index range to restrict to within 10 indices in all directions
+    # Define the index range to restrict to within deg_radius indices in all directions
     lat_min = max(nearest_lat_idx - deg_radius, 0)
     lat_max = min(nearest_lat_idx + deg_radius, lat_ssh_grad_y.shape[0] - 1)
     lon_min = max(nearest_lon_idx - deg_radius, 0)
