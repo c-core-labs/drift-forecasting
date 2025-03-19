@@ -305,9 +305,9 @@ def assess_rcm_iceberg_drift_deterioration_forecaster(iceberg_lat0, iceberg_lon0
 
     def datenum_to_datetime64(datenum):
         # MATLAB base date offset to Unix epoch (1970-01-01)
-        days_offset = 719529  # Number of days from 0000-01-01 to 1970-01-01
+        days_offset = 719529 # Number of days from 0000-01-01 to 1970-01-01
         # Adjust datenum to days relative to Unix epoch, convert to seconds, and return datetime64
-        seconds_since_epoch = (datenum - days_offset) * 86400  # full float precision
+        seconds_since_epoch = (datenum - days_offset) * 86400 # full float precision
         return np.datetime64(int(seconds_since_epoch), 's')
 
     if grounded_status == 'grounded':
