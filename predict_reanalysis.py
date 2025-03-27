@@ -22,13 +22,16 @@ lonmin = 0
 lonmax = -80
 latmin = 90
 latmax = 0
-
-flist = np.sort(np.append(glob('./input/2024/*.shp'),glob('./input/2023/*.shp')))
+lmax = 0
+#flist = np.sort(np.append(glob('./input/2024/*.shp'),glob('./input/2023/*.shp')))
+flist = np.sort(glob('./input/2024/*.shp'))
 for fname in flist:
 #for fname in np.sort(glob('./input/2024/*.shp')[0:]):
 
     observations = utils.read_shapefile(fname)
-    pairs = utils.process_track(observations)
+    if observations[0].length > lmax:
+        lmax = observations[0].length
+        print("FILE: " + fname)
 
     print(fname + " " + str(np.size(observations)) + ' targets loaded')
 
@@ -73,12 +76,12 @@ for fname in flist:
             print("Average speed: " + str(np.sqrt(dx**2+dy**2)/(o_next.time - o.time).astype(float)) + " m/s\n")
 
         try:
-            t, lat, lon = context.forecast(o, o.time+np.timedelta64(48, 'h'))
+            #t, lat, lon = context.forecast(o, o.time+np.timedelta64(48, 'h'))
 
-            predictions.append((lat, lon))
+            #predictions.append((lat, lon))
 
-            errors = np.append(errors, utils.get_error(o_next, t, lat, lon))
-            errors2 = np.append(errors2,utils.get_dimensionless_error(o,o_next,t,lat,lon))
+            #errors = np.append(errors, utils.get_error(o_next, t, lat, lon))
+            #errors2 = np.append(errors2,utils.get_dimensionless_error(o,o_next,t,lat,lon))
             time_deltas = np.append(time_deltas, (o_next.time - o.time).astype(float) / 3600)
             #plt.plot([o.lon, o_next.lon], [o.lat, o_next.lat], '-ro', markersize=2, linewidth=1)
 

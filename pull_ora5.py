@@ -31,24 +31,26 @@ def pull_data():
 
 
 def pull_data_operational(t0):
-  copernicusmarine.subset(
-    username='ryulmetov',
-    password='d8ZNwJRB',
-    dataset_id="cmems_mod_glo_phy-cur_anfc_0.083deg_PT6H-i",
-    variables=["uo", "vo"],
-    minimum_longitude=-64.5,
-    maximum_longitude=-46.75,
-    minimum_latitude=48,
-    maximum_latitude=61.2,
-    start_datetime=str(t0-np.timedelta64(6,'h')),
-    end_datetime=(t0+np.timedelta64(3,'D')).astype(str),
-    minimum_depth=0,
-    maximum_depth=200,
-    output_filename=t0.astype('datetime64[D]').astype(str)+".nc",
-    output_directory="copernicus-data"
-  )
+    print('Downloading ocean currents data')
+    copernicusmarine.subset(
+        username='ryulmetov',
+        password='d8ZNwJRB',
+        dataset_id="cmems_mod_glo_phy-cur_anfc_0.083deg_PT6H-i",
+        variables=["uo", "vo"],
+        minimum_longitude=-64.5,
+        maximum_longitude=-46.75,
+        minimum_latitude=48,
+        maximum_latitude=61.2,
+        start_datetime=str(t0-np.timedelta64(6,'h')),
+        end_datetime=(t0+np.timedelta64(3,'D')).astype(str),
+        minimum_depth=0,
+        maximum_depth=200,
+        output_filename=t0.astype('datetime64[D]').astype(str)+".nc",
+        output_directory="copernicus-data",
+        overwrite=True
+    )
 
-def get_interpolators(t0: np.datetime64, t1: np.datetime64, d: float):
+def get_interpolators(t0: np.datetime64, d: float):
     date = str(t0.astype('datetime64[D]'))
     fname = './copernicus-data/' + date + '.nc'
 

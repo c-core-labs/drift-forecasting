@@ -37,7 +37,6 @@ class Strategy(ABC):
 # ML model
 class HighResML(Strategy):
 
-
     def forecast(self, obs: Observation, t1: np.datetime64 ) -> (np.array, np.array, np.array):
         import highResML
         return highResML.forecast(obs, t1)
@@ -47,7 +46,6 @@ class HighResML(Strategy):
 
 # ML model
 class LowResML(Strategy):
-
 
     def forecast(self, obs: Observation, t1: np.datetime64 ) -> (np.array, np.array, np.array):
         import lowResML
@@ -60,7 +58,6 @@ class LowResML(Strategy):
 # The grounded model
 class Grounded(Strategy):
 
-
     def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
         import grounded
         return grounded.forecast(obs,t1)
@@ -72,7 +69,6 @@ class Grounded(Strategy):
 # The leeway model
 class Leeway(Strategy):
 
-
     def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
         import leeway
         return leeway.forecast(obs,t1)
@@ -82,7 +78,6 @@ class Leeway(Strategy):
 
 # The dynamic model
 class Dynamic(Strategy):
-
 
     def forecast(self, obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.array):
         import dynamic

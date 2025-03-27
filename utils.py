@@ -8,6 +8,7 @@ import sys
 import re
 import xarray as xr
 import numpy.typing as npt
+import geojson
 
 nHours = 48
 R = 6381000
@@ -178,13 +179,16 @@ def process_track(observations):
 def write_shapefile(predictions,fname):
     sf = shapefile.Writer(fname)
     sf.field('name', 'C')
-    sf.field('lon', 'F')
-    sf.field('lat', 'F')
+    sf.field('forecast_hour', 'N')
+    sf.field('time', 'C')
 
-    for i in np.arange(0,len(predictions)):
-        data = np.vstack((predictions[i][1], predictions[i][0])).T
-        sf.multipoint(data)
-        sf.record('track'+str(i))
+    i = 0
+    for p in predictions:
+        time,lat,lon = p
+        for j,t in enumerate(time):
+            sf.point(lon[j], lat[j])
+            sf.record(name='track'+str(i),forecast_hour=(t-time[0]).astype('timedelta64[h]').astype(int),time=str(t))
+        i += 1
 
     sf.close()
 
@@ -196,6 +200,13 @@ def write_shapefile(predictions,fname):
         wkt += 'UNIT["degree",0.0174532925199433]]'
         prj.write(wkt)
 
+
+def to_geojson(predictions):
+    data =[]
+    for i in np.arange(0,len(predictions)):
+        data.append(list(zip(predictions[i][1], predictions[i][0])))
+
+    return geojson.MultiLineString(data)
 
 def read_product_shapefile(fname) -> npt.NDArray[Observation]:
     observations = np.empty(0, dtype=Observation)
@@ -211,7 +222,6 @@ def read_product_shapefile(fname) -> npt.NDArray[Observation]:
     else:
         print('Can not read date from the shapefile name.')
 
-
     for p in sf.shapeRecords():
         if p.record['Class'] == "ICEBERG":
             l = p.record['WtrLin']
@@ -219,11 +229,16 @@ def read_product_shapefile(fname) -> npt.NDArray[Observation]:
             lon = p.shape.points[0][0]
             observations = np.append(observations,Observation(lat,lon,time,l, grounded=False))
 
-    print("Total iceberg targets: " + str(observations.size))
+    if observations.size == 0:
+        print("Error: No iceberg targets to forecast.")
+        exit()
+    else:
+        print("Total iceberg targets: " + str(observations.size))
+
     return observations
 
 def check_groundings(observations):
-    fname = './bathymetry/gebco_2024_n60.0_s45.0_w-60.0_e-45.0.nc'
+    fname = './bathymetry/gebco_2024_n62.0_s45.0_w-64.0_e-45.0.nc'
     # Get dimensions first
     ds = xr.open_dataset(fname, decode_cf=False)
 
@@ -241,21 +256,10 @@ def check_groundings(observations):
 
     return np.array(grounded_flags)
 
-def check_groundings(observations):
-    fname = './bathymetry/gebco_2024_n60.0_s45.0_w-60.0_e-45.0.nc'
-    # Get dimensions first
-    ds = xr.open_dataset(fname, decode_cf=False)
 
-    lat = ds.variables['lat'].to_numpy()
-    lon = ds.variables['lon'].to_numpy()
-    elevation = ds.variables['elevation'].to_numpy()
-    f_depth = interpolate.RegularGridInterpolator((lat, lon), elevation, fill_value=0)
+def interpolate_track(t,lat,lon, dt):
+    t1 = np.arange(t[0],t[-1],dt)
+    flon = interpolate.interp1d(t.astype(float), lon)
+    flat = interpolate.interp1d(t.astype(float), lat)
 
-    grounded_flags = []
-    for o in observations:
-        if o.depth > -f_depth([o.lat,o.lon]):
-            grounded_flags.append(True)
-        else:
-            grounded_flags.append(False)
-
-    return np.array(grounded_flags)
+    return t1, flat(t1), flon(t1)

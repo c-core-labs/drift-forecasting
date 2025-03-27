@@ -1,7 +1,7 @@
 import numpy as np
 from observation import Observation
 from catboost import Pool, CatBoostRegressor
-import pull_ora5, pull_era5
+import pull_ora5, pull_era5, pull_era5_historic
 from scipy import integrate
 
 model = CatBoostRegressor()
@@ -30,8 +30,8 @@ def forecast(obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.arr
     u = np.full((tint.size,2), [0.0,0.0]) # relative water
     uw = np.full((tint.size,2), [0.0,0.0])
 
-    [fuw, fvw] = pull_ora5.get_interpolators(t0, t1, obs.depth)
-    [fua, fva] = pull_era5.get_global_interpolators(t0)
+    [fuw, fvw] = pull_ora5.get_interpolators(t0, obs.depth)
+    [fua, fva] = pull_era5.get_interpolators(t0)
 
     l = obs.length
     alpha = get_alpha(obs.lat)
@@ -62,8 +62,7 @@ def forecast(obs: Observation, t1: np.datetime64) -> (np.array, np.array, np.arr
 
 
         if np.isnan(fuw(p)):
-            raise Exception("Potential grounding")
-            break
+            raise Exception("Potential grounding", (tint, latint, lonint))
         else:
             x = Pool([np.hstack((uold, unow, va, uw[i+1,:], l))])
             psi = model.predict(x)[0]
