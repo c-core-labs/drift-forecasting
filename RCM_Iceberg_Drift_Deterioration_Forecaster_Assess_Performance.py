@@ -742,7 +742,7 @@ def datetime64_to_datenum(dt64):
     # Convert numpy.datetime64 to days since 1970-01-01
     days_since_epoch = (dt64 - np.datetime64('1970-01-01')) / np.timedelta64(1, 'D')
     # MATLAB datenum offset to convert 1970-01-01 in numpy to 0000-01-01 in MATLAB
-    matlab_offset = 719529  # days from 0000-01-01 to 1970-01-01 in MATLAB
+    matlab_offset = 719529 # days from 0000-01-01 to 1970-01-01 in MATLAB
     # Add offset to convert to MATLAB datenum
     return days_since_epoch + matlab_offset
 

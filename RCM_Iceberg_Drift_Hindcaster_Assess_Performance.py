@@ -762,7 +762,7 @@ def datetime64_to_datenum(dt64):
     # Convert numpy.datetime64 to days since 1970-01-01
     days_since_epoch = (dt64 - np.datetime64('1970-01-01')) / np.timedelta64(1, 'D')
     # MATLAB datenum offset to convert 1970-01-01 in numpy to 0000-01-01 in MATLAB
-    matlab_offset = 719529  # days from 0000-01-01 to 1970-01-01 in MATLAB
+    matlab_offset = 719529 # days from 0000-01-01 to 1970-01-01 in MATLAB
     # Add offset to convert to MATLAB datenum
     return days_since_epoch + matlab_offset
 
@@ -794,7 +794,7 @@ for p in range(len(rcm_shapefiles_names_2023)):
     acqdates = []
 
     for record in gdf.records():
-        date = record["acqDate"]
+        date = record['acqDate']
 
         try:
             date = np.datetime64(datetime.datetime.strptime(date, '%Y%m%d_%H%M%S'))
@@ -816,11 +816,11 @@ for p in range(len(rcm_shapefiles_names_2023)):
             point1 = gdf.shape(index1)
             iceberg_lat_end = point1.points[0][1]
             iceberg_lon_end = point1.points[0][0]
-            iceberg_length = gdf.record(index0)["WtrLin"]
-            iceberg_length_end = gdf.record(index1)["WtrLin"]
-            grounded_status = gdf.record(index0)["Grounded"]
-            rcm_datetime0 = gdf.record(index0)["acqDate"]
-            previous_time = gdf.record(index1)["acqDate"]
+            iceberg_length = gdf.record(index0)['WtrLin']
+            iceberg_length_end = gdf.record(index1)['WtrLin']
+            grounded_status = gdf.record(index0)['Grounded']
+            rcm_datetime0 = gdf.record(index0)['acqDate']
+            previous_time = gdf.record(index1)['acqDate']
             rcm_datetime0 = np.datetime64(datetime.datetime.strptime(rcm_datetime0, '%Y%m%d_%H%M%S'))
             previous_time = np.datetime64(datetime.datetime.strptime(previous_time, '%Y%m%d_%H%M%S'))
             (iceberg_lat0, iceberg_lon0, iceberg_lats, iceberg_lons, iceberg_times, iceberg_length,
@@ -849,7 +849,7 @@ for p in range(len(rcm_shapefiles_names_2024)):
     acqdates = []
 
     for record in gdf.records():
-        date = record["acqDate"]
+        date = record['acqDate']
 
         try:
             date = np.datetime64(datetime.datetime.strptime(date, '%Y%m%d_%H%M%S'))
@@ -871,11 +871,11 @@ for p in range(len(rcm_shapefiles_names_2024)):
             point1 = gdf.shape(index1)
             iceberg_lat_end = point1.points[0][1]
             iceberg_lon_end = point1.points[0][0]
-            iceberg_length = gdf.record(index0)["WtrLin"]
-            iceberg_length_end = gdf.record(index1)["WtrLin"]
-            grounded_status = gdf.record(index0)["Grounded"]
-            rcm_datetime0 = gdf.record(index0)["acqDate"]
-            previous_time = gdf.record(index1)["acqDate"]
+            iceberg_length = gdf.record(index0)['WtrLin']
+            iceberg_length_end = gdf.record(index1)['WtrLin']
+            grounded_status = gdf.record(index0)['Grounded']
+            rcm_datetime0 = gdf.record(index0)['acqDate']
+            previous_time = gdf.record(index1)['acqDate']
             rcm_datetime0 = np.datetime64(datetime.datetime.strptime(rcm_datetime0, '%Y%m%d_%H%M%S'))
             previous_time = np.datetime64(datetime.datetime.strptime(previous_time, '%Y%m%d_%H%M%S'))
             (iceberg_lat0, iceberg_lon0, iceberg_lats, iceberg_lons, iceberg_times, iceberg_length,
