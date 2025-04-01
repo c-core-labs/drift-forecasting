@@ -860,6 +860,8 @@ def rcm_iceberg_drift_optimizer(iceberg_lats0, iceberg_lons0, iceberg_lengths0, 
     iceberg_pos_error_list = []
     Ca_list = []
     Cw_list = []
+    iceberg_u0_list = []
+    iceberg_v0_list = []
     # u_curr_anc_list = []
     # v_curr_anc_list = []
 
@@ -914,9 +916,11 @@ def rcm_iceberg_drift_optimizer(iceberg_lats0, iceberg_lons0, iceberg_lengths0, 
                                                                              rho_si, si_toggle, deg_radius)
         Ca_list.append(Ca)
         Cw_list.append(Cw)
+        iceberg_u0_list.append(iceberg_u0)
+        iceberg_v0_list.append(iceberg_v0)
         # u_curr_anc_list.append(u_curr_anc)
         # v_curr_anc_list.append(v_curr_anc)
         iceberg_pos_error_list.append(iceberg_pos_error_final / 1000.)
 
-    return iceberg_pos_error_list, Ca_list, Cw_list # , u_curr_anc_list, v_curr_anc_list
+    return iceberg_pos_error_list, Ca_list, Cw_list, iceberg_u0_list, iceberg_v0_list # , u_curr_anc_list, v_curr_anc_list
 
