@@ -42,14 +42,18 @@ GDWPS. (2024). “Global Deterministic Wave Prediction System (GDWPS) data in GR
 
 RIOPS. (2024). “Regional Ice Ocean Prediction System (RIOPS) Data in NetCDF Format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_riops/readme_riops-datamart_en/, November 1, 2024.
 
-Title: Documentation for RCM_Iceberg_Drift_Deterioration_Forecaster.py
+Title: Documentation for RCM_Iceberg_Drift_Deterioration_Forecaster.py and RCM_Iceberg_Drift_Deterioration_Optimized_Forecaster.py
 Author: Ian D. Turnbull
 
 Summary:
 
-The RCM_Iceberg_Drift_Deterioration_Forecaster.py Python script file contains a function called rcm_iceberg_drift_deterioration_forecaster and runs on a physics-based iceberg drift and deterioration model. The function takes the following inputs taken from a RADARSAT Constellation Mission (RCM) satellite image: a series of iceberg latitude/longitude positions, the date/time of the RCM image acquisition, the iceberg lengths, the iceberg statuses as grounded or not, the iceberg identification numbers, the anticipated time of the next RCM image acquisition, and whether sea ice is present (si_toggle). The iceberg initial positions, time, waterline lengths, id numbers, and grounded statuses should be passed to the function from an instance of the Observations class or an instance of the Observation class if for a single iceberg only. The function forecasts the icebergs’ new positions and waterline lengths at some user-specified time in the future assumed to align with the date/time of the next RCM image acquisition. The function will output hourly forecast iceberg latitude/longitude position and waterline lengths up to the next RCM image acquisition date/time. The final time step will be the remainder between the last hourly time step and the next RCM image acquisition date/time if it is less than one hour. This document lists the Python libraries needed to run the function, describes how the function works, lists its key operating assumptions, and provides an overview of the model’s performance on icebergs tracked in RCM imagery during 2023-2024.
+The RCM_Iceberg_Drift_Deterioration_Forecaster.py Python script file contains a function called rcm_iceberg_drift_deterioration_forecaster and runs on a physics-based iceberg drift and deterioration model. The function takes the following inputs taken from a RADARSAT Constellation Mission (RCM) satellite image: a series of iceberg latitude/longitude positions, the date/time of the RCM image acquisition, the iceberg lengths, the iceberg statuses as grounded or not, the iceberg identification numbers, the anticipated time of the next RCM image acquisition, and whether sea ice is present (si_toggle). The iceberg initial positions, time, waterline lengths, id numbers, and grounded statuses should be passed to the function from an instance of the Observations class or an instance of the Observation class if for a single iceberg only. The function forecasts the icebergs’ new positions and waterline lengths at some user-specified time in the future assumed to align with the date/time of the next RCM image acquisition. The function will output hourly forecast iceberg latitude/longitude position and waterline lengths up to the next RCM image acquisition date/time. The final time step will be the remainder between the last hourly time step and the next RCM image acquisition date/time if it is less than one hour.
 
-Python Libraries Used in Current Version of the Function:
+The RCM_Iceberg_Drift_Deterioration_Optimized_Forecaster.py Python script file contains a function called rcm_iceberg_drift_deterioration_optimized_forecaster that is nearly identical to the rcm_iceberg_drift_deterioration_forecaster function but uses the optimized air and water form drag coefficients and initial iceberg drift velocity components output from the rcm_iceberg_drift_optimizer function (see RCM_Iceberg_Drift_Optimizer.py Python script and documentation). This function is intended to be run immediately after the rcm_iceberg_drift_optimizer function, e.g., the forecast is initialized right after a known iceberg displacement that was hindcast using the rcm_iceberg_drift_optimizer function.
+
+This document lists the Python libraries needed to run the functions, describes how the functions work, lists their key operating assumptions, and provides an overview of the model’s performance on icebergs tracked in RCM imagery during 2023-2024.
+
+Python Libraries Used in Current Version of the Functions:
 
 scipy v1.13.1
 numpy v1.26.4
@@ -66,14 +70,15 @@ The rcm_iceberg_drift_deterioration_forecaster function requires the following i
 •	The initial iceberg waterline lengths (passed from Observation(s) class instance),
 •	The icebergs’ initial statuses as grounded or not (passed from Observation(s) class instance as True/False),
 •	The iceberg’s id numbers (passed from Observation(s) class instance) for tracking purposes,
-•	The anticipated time of the next RCM image acquisition (t1), and
-•	Whether sea is present (si_toggle=True or False).
+•	The anticipated time of the next RCM image acquisition (t1),
+•	Whether sea is present (si_toggle=True or False), and
+•	If using the rcm_iceberg_drift_deterioration_optimized_forecaster function, then the lists of optimized air and water form drag coefficients (Ca_list and Cw_list, respectively) and the initial iceberg drift zonal and meridional velocity components (iceberg_u0_list and iceberg_v0_list, respectively) are also passed as inputs to the function.
 
 The iceberg waterline lengths are assumed to be in meters. The date/time of the RCM image acquisition (rcm_datetime0) and the anticipated date/time of the next RCM image acquisition (next_rcm_time) should be strings in numpy datetime64 format and Universal Time Coordinated (UTC), e.g., for example: ‘2024-11-01T09:42:53.33’.
 
-1.	The first lines of the function define some constants, including densities for air, seawater, and ice, ice albedo, latent heat of fusion for ice, the earth gravitational acceleration and angular velocity, drag coefficients for air, water, and wave drift forcing on an iceberg, added mass fraction of an iceberg, and radius of the Earth. The paths to the bathymetric data (bathy_data_path) and the metocean forecast data files (rootpath_to_metdata) are defined. The iceberg initial latitudes/longitudes, time, waterline lengths, id numbers, grounded statuses, and forecast time are pulled from the Observation(s) class instance (obs) and put into list format if they are not already. The deg_radius variable sets the number of latitude-longitude grid points on the forecast ocean variables grid for temporarily trimming down the grid to within that number of grid points from the iceberg to save time on grid interpolation.
+1.	The first lines of the function define some constants, including densities for air, seawater, and ice, ice albedo, latent heat of fusion for ice, the earth gravitational acceleration and angular velocity, drag coefficients for air, water, and wave drift forcing on an iceberg, added mass fraction of an iceberg, and radius of the Earth. The paths to the bathymetric data (bathy_data_path) and the metocean forecast data files (rootpath_to_metdata) are defined. The iceberg initial latitudes/longitudes, time, waterline lengths, id numbers, grounded statuses, and forecast time are pulled from the Observation(s) class instance (obs) and put into list format if they are not already. The optimized air and water form drag coefficients and initial iceberg drift velocity components (if using the rcm_iceberg_drift_deterioration_optimized_forecaster function) are also put into list format if they are not already. The deg_radius variable sets the number of latitude-longitude grid points on the forecast ocean variables grid for temporarily trimming down the grid to within that number of grid points from the iceberg to save time on grid interpolation.
 
-2.	Four nested functions are defined within the rcm_iceberg_drift_deterioration_forecaster function:
+2.	Four nested functions are defined within the rcm_iceberg_drift_deterioration_forecaster and rcm_iceberg_drift_deterioration_optimized_forecaster functions:
 
 •	The first function calculates the latitude/longitude coordinate at a given distance and course from an initial latitude/longitude coordinate,
 •	The second function calculates the easterly and northerly iceberg acceleration vector components from the sum of the forcings acting on the iceberg,
@@ -98,13 +103,13 @@ The forcings considered in the function for iceberg deterioration are the (e.g.,
 
 3.	The rcm_datetime0 (the RCM image acquisition time) and next_rcm_time are ensured to be in numpy datetime64 format and the forecast start time for a set of icebergs passed to the function is set to the rcm_datetime0.
 
-4.	The function reads the bathymetric data file and interpolates the water depth at the iceberg location. If the iceberg’s status has been entered into the function as “not grounded” but the calculated draft is equal to or greater than the water depth, the iceberg draft is reset to be one meter less than the water depth. If the iceberg’s initial status is given as “grounded” then the iceberg’s draft will be reset to the water depth at its initial location.
+4.	The functions read the bathymetric data file and interpolates the water depth at the iceberg location. If the iceberg’s status has been entered into the function as “not grounded” but the calculated draft is equal to or greater than the water depth, the iceberg draft is reset to be one meter less than the water depth. If the iceberg’s initial status is given as “grounded” then the iceberg’s draft will be reset to the water depth at its initial location.
 
-5.	If no real positive iceberg waterline length is given for an iceberg, the function will assume it is 100 m. Since the iceberg’s waterline length is the only physical dimension extracted from an RCM image, the iceberg draft, mass, and sail cross-sectional area are calculated from this variable alone. The iceberg draft is calculated as a function of the iceberg waterline length using the formulation obtained from analysis of C-CORE iceberg profile data. The iceberg mass and cross-sectional sail area are calculated as a function of waterline length from formulations given in Barker et al. (2004).
+5.	If no real positive iceberg waterline length is given for an iceberg, the functions will assume it is 100 m. Since the iceberg’s waterline length is the only physical dimension extracted from an RCM image, the iceberg draft, mass, and sail cross-sectional area are calculated from this variable alone. The iceberg draft is calculated as a function of the iceberg waterline length using the formulation obtained from analysis of C-CORE iceberg profile data. The iceberg mass and cross-sectional sail area are calculated as a function of waterline length from formulations given in Barker et al. (2004).
 
 6.	The iceberg drift forecast times are determined. The drift forecast is initialized at the RCM image acquisition date/time, and then hourly time-steps are used until the next RCM image acquisition date/time is reached. The final time-step between the last hourly time-step and the next RCM image acquisition date/time may be less than one hour.
 
-7.	Arrays are initialized for the hourly forecast iceberg latitude/longitude positions, drift velocities, waterline lengths, drafts, and masses.
+7.	Arrays are initialized for the hourly forecast iceberg latitude/longitude positions, drift velocities, waterline lengths, drafts, and masses. In rcm_iceberg_drift_deterioration_forecaster function the iceberg drift velocity components are initialized as zero and in rcm_iceberg_drift_deterioration_optimized_forecaster function they are initialized from the iceberg_u0_list and iceberg_v0_list variables as determined from the rcm_iceberg_drift_optimizer function.
 
 8.	The UTC hour strings at which the metocean forecast data start are determined by checking the files in the rootpath_to_metdata.
 
@@ -120,7 +125,7 @@ The forcings considered in the function for iceberg deterioration are the (e.g.,
 
 14.	At each time-step, the water depth is checked at the forecast iceberg location. If the water depth is equal to or less than the iceberg draft, the iceberg drift is halted at that point and the iceberg’s status is changed to grounded.
 
-15.	The function will finally return the following variables:
+15.	The functions will finally return the following variables:
 
 •	The times at which the iceberg positions are forecast (in numpy datetime64 string format),
 •	The hourly forecast iceberg latitude/longitude (in degrees North and East, respectively) positions up to the next RCM image acquisition date/time,
@@ -139,12 +144,11 @@ Key Operating Assumptions:
 
 Model Performance:
 
-The model performance was assessed on RCM-tracked icebergs over the 2023-2024 seasons. A total of 340 individual iceberg displacements between RCM images were used. Historical winds and waves were obtained from the ERA5 reanalysis (Hersbach et al., 2023) and historical ocean currents, temperatures, salinities, and sea surface heights were obtained from the Hybrid Coordinate Ocean Model (HYCOM, 2024) reanalysis. Hourly observed iceberg positions were linearly interpolated between RCM observations. The average position error at 12 hours is 8.8 km and the average position error at 24 hours is 18.1 km. There were only 11 instances in the 2023-2024 data in which iceberg waterline length decreased between observations. The deterioration model tends to underestimate the iceberg deterioration. This is likely at least partly due to the resolution of the metocean forcing data being too coarse to capture the wave-induced calving events. None of the 2023-2024 icebergs were in sea ice.
+The model performance was assessed on RCM-tracked icebergs over the 2023-2024 seasons. A total of 340 individual iceberg displacements between RCM images were used. Historical winds and waves were obtained from the ERA5 reanalysis (Hersbach et al., 2023) and historical ocean currents, temperatures, salinities, and sea surface heights were obtained from the Hybrid Coordinate Ocean Model (HYCOM, 2024) reanalysis. Using the rcm_iceberg_drift_deterioration_forecaster function, the average position error at 12 hours is 8.8 km and the average position error at 24 hours is 18.1 km. There were only 11 instances in the 2023-2024 data in which iceberg waterline length decreased between observations. The deterioration model tends to underestimate the iceberg deterioration. This is likely at least partly due to the resolution of the metocean forcing data being too coarse to capture the wave-induced calving events. None of the 2023-2024 icebergs were in sea ice.
 
 References:
 
 Barker, A., Sayed, M., and Carrieres, T. (2004). “Determination of Iceberg Draft, Mass and Cross-Sectional Areas,” In Proceedings of the 14th International Offshore and Polar Engineering Conference (ISOPE), Toulon, France, May 23-28.
-
 Eik, K. (2009). “Iceberg drift modelling and validation of applied metocean hindcast data,” Cold Regions Science and Technology, vol. 57, pp. 67-90.
 
 GDPS. (2024). “Global Deterministic Prediction System (GDPS) data in GRIB2 format,” Accessed on the World Wide Web at: https://eccc-msc.github.io/open-data/msc-data/nwp_gdps/readme_gdps-datamart_en/, November 1, 2024.
