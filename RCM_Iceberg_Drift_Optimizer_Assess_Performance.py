@@ -236,7 +236,6 @@ def rcm_iceberg_drift_optimizer_assess_performance(iceberg_lat0, iceberg_lon0, r
                 siconc_ib = 0.
                 sithick_ib = 0.
 
-            iceberg_siconcs[i] = siconc_ib
             wave_dir_ib = 90. - np.rad2deg(np.arctan2(wave_dir_N_ib, wave_dir_E_ib))
 
             if wave_dir_ib < 0:
@@ -365,7 +364,7 @@ def rcm_iceberg_drift_optimizer_assess_performance(iceberg_lat0, iceberg_lon0, r
     bathy_interp = RegularGridInterpolator((bathy_lat, bathy_lon), bathy_depth, method='linear', bounds_error=True, fill_value=np.nan)
     iceberg_bathy_depth0 = bathy_interp([[iceberg_lat0, iceberg_lon0]])[0]
 
-    if grounded_status == 'not grounded' and iceberg_bathy_depth0 <= iceberg_draft:
+    if iceberg_bathy_depth0 <= iceberg_draft:
         iceberg_draft = iceberg_bathy_depth0 - 1.
 
     forecast_time = rcm_datetime0
