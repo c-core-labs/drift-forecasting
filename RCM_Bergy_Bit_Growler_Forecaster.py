@@ -327,7 +327,7 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
 
             if valid_lats_min.size > 2:
                 points_min = np.column_stack((valid_lons_min, valid_lats_min))
-                if not np.all(points_min == points_min[0]):  # Ensure at least 3 unique points
+                if not np.all(points_min == points_min[0]): # Ensure at least 3 unique points
                     hull_min = ConvexHull(points_min)
                     boundaries["min_length_boundary"][k] = points_min[hull_min.vertices]
                 else:
@@ -343,7 +343,7 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
 
                 if valid_lats_range.size > 2:
                     points_range = np.column_stack((valid_lons_range, valid_lats_range))
-                    if not np.all(points_range == points_range[0]):  # Ensure at least 3 unique points
+                    if not np.all(points_range == points_range[0]): # Ensure at least 3 unique points
                         hull_range = ConvexHull(points_range)
                         boundaries["length_range_boundaries"][(lower, upper)][k] = points_range[hull_range.vertices]
                     else:
@@ -1021,7 +1021,7 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
 
                 if np.isnan(wave_pd_after_growler):
                     wave_pd_after_growler = 16.
-                
+
                 wave_pd_growler = wave_pd_before_growler + weight_wind_waves * (wave_pd_after_growler - wave_pd_before_growler)
 
                 airT_before_bb = float(f_airT_before([bergy_bit_lat, bergy_bit_lon]))
