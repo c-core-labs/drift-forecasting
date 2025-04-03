@@ -44,9 +44,9 @@ def plot_iceberg_tracks(iceberg_lons, iceberg_lats, iceberg_lengths, iceberg_tim
         segments = []
         colors = []
 
-        for i in range(iceberg_lons.shape[0] - 1):  # Loop through time steps
+        for i in range(iceberg_lons.shape[0] - 1): # Loop through time steps
             if np.isnan(iceberg_lengths[i, k]) or np.isnan(iceberg_lengths[i + 1, k]):
-                continue  # Skip invalid data
+                continue # Skip invalid data
 
             # Define the line segment
             segment = [(iceberg_lons[i, k], iceberg_lats[i, k]), (iceberg_lons[i + 1, k], iceberg_lats[i + 1, k])]
@@ -96,7 +96,7 @@ iceberg_ids = '0000'
 iceberg_grounded_statuses0 = False
 si_toggle = True
 
-obs = Observation(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, [False, False], iceberg_ids)
+obs = Observation(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, False, iceberg_ids)
 # obs = Observation(iceberg_lats0, iceberg_lons0, rcm_datetime0, iceberg_lengths0, iceberg_grounded_statuses0, False, iceberg_ids)
 iceberg_times, iceberg_lats, iceberg_lons, iceberg_lengths, iceberg_grounded_statuses = rcm_iceberg_drift_deterioration_forecaster(obs, next_rcm_time, si_toggle)
 
