@@ -866,7 +866,7 @@ def rcm_iceberg_drift_optimizer(iceberg_lats0, iceberg_lons0, iceberg_lengths0, 
     # v_curr_anc_list = []
 
     for k in range(len(iceberg_lats0)):
-        print('Optimizing drag coefficients and currents for iceberg ' + str(iceberg_ids[k]) + '...')
+        print('Optimizing air and water drag coefficients for iceberg ' + str(iceberg_ids[k]) + '...')
         iceberg_id = str(iceberg_ids[k])
         iceberg_lengths = np.interp(time_numeric, [time_start, time_end], [iceberg_lengths0[k], iceberg_lengths_end[k]])
         iceberg_lat_obs = np.interp(time_numeric, [time_start, time_end], [iceberg_lats0[k], iceberg_lats_end[k]])
