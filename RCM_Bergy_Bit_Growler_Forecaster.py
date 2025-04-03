@@ -974,6 +974,13 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
 
                 Hs_before_bb = float(f_Hs_before([bergy_bit_lat, bergy_bit_lon + 360.]))
                 Hs_after_bb = float(f_Hs_after([bergy_bit_lat, bergy_bit_lon + 360.]))
+
+                if np.isnan(Hs_before_bb):
+                    Hs_before_bb = 0.
+
+                if np.isnan(Hs_after_bb):
+                    Hs_after_bb = 0.
+
                 Hs_bb = Hs_before_bb + weight_wind_waves * (Hs_after_bb - Hs_before_bb)
 
                 u_wind_before_growler = float(f_u_wind_before([growler_lat, growler_lon + 360.]))
@@ -986,14 +993,35 @@ def rcm_bergy_bit_growler_forecaster(obs: Observations, t1: np.datetime64, si_to
 
                 Hs_before_growler = float(f_Hs_before([growler_lat, growler_lon + 360.]))
                 Hs_after_growler = float(f_Hs_after([growler_lat, growler_lon + 360.]))
+
+                if np.isnan(Hs_before_growler):
+                    Hs_before_growler = 0.
+
+                if np.isnan(Hs_after_growler):
+                    Hs_after_growler = 0.
+
                 Hs_growler = Hs_before_growler + weight_wind_waves * (Hs_after_growler - Hs_before_growler)
 
                 wave_pd_before_bb = float(f_wave_pd_before([bergy_bit_lat, bergy_bit_lon + 360.]))
                 wave_pd_after_bb = float(f_wave_pd_after([bergy_bit_lat, bergy_bit_lon + 360.]))
+
+                if np.isnan(wave_pd_before_bb):
+                    wave_pd_before_bb = 0.
+
+                if np.isnan(wave_pd_after_bb):
+                    wave_pd_after_bb = 0.
+
                 wave_pd_bb = wave_pd_before_bb + weight_wind_waves * (wave_pd_after_bb - wave_pd_before_bb)
 
                 wave_pd_before_growler = float(f_wave_pd_before([growler_lat, growler_lon + 360.]))
                 wave_pd_after_growler = float(f_wave_pd_after([growler_lat, growler_lon + 360.]))
+
+                if np.isnan(wave_pd_before_growler):
+                    wave_pd_before_growler = 16.
+
+                if np.isnan(wave_pd_after_growler):
+                    wave_pd_after_growler = 16.
+                
                 wave_pd_growler = wave_pd_before_growler + weight_wind_waves * (wave_pd_after_growler - wave_pd_before_growler)
 
                 airT_before_bb = float(f_airT_before([bergy_bit_lat, bergy_bit_lon]))
