@@ -5,10 +5,10 @@ import numpy as np
 import netCDF4 as nc
 import os
 import gsw
-# from observation import Observation
-from observations import Observations
+from observation import Observation
+# from observations import Observations
 
-def rcm_iceberg_drift_hindcaster(obs: Observations, t1: np.datetime64, si_toggle, metocean_folder_date):
+def rcm_iceberg_drift_hindcaster(obs: Observation, t1: np.datetime64, si_toggle, metocean_folder_date):
     deg_radius = 5
     g = 9.80665
     rho_water = 1023.6
